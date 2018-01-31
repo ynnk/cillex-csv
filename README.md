@@ -21,3 +21,7 @@
 
   python istex2csv.py --port 5004 
   
+## Notes
+
+  # POST PUT to ethercalc with curl.
+  curl -i -X PUT --data-binary @/home/bruno/WORK/FORDEV_FORDEV_FORDEV_FORDEV/notebook_0/bidon.csv https://ethercalc.org/_/htkuiuytp8
