@@ -130,17 +130,20 @@ def to_csv(headers, rows):
 def tocsv():
 
     url = request.form.get('istexq', None)
+    
     headers, rows = request_api(url)
     table = headers and len(headers) > 0
 
     append = request.form.get('append', False)
-    mode = "POST" if append else "PUT"
-    
-    if mode == "PUT":
-        r = requests.put(CALC_URL, data=to_csv(headers, rows))
 
-    if mode == "POST":
-        r = requests.post(calc, data=to_csv([], rows))
+    mode = "POST" if append else "PUT"
+
+    if len(headers):
+        if mode == "PUT":
+            r = requests.put(CALC_URL, data=to_csv(headers, rows))
+
+        if mode == "POST":
+            r = requests.post(CALC_URL, data=to_csv([], rows))
 
     return render_template('tocsv.html', table=table, mode=mode, headers=headers, rows=rows, url=url if url else "" )
 
