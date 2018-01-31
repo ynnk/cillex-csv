@@ -12,8 +12,12 @@ import collections
 from StringIO import StringIO
 
 app = Flask(__name__)
-app.config['DEBUG'] = True
+app.config['DEBUG'] = False
 
+CALC_URL = "http://calc.padagraph.io/_/export-cillex-csv"
+
+
+# parse response attributes
 _key = lambda e,k : e.get(k)
 _label = lambda e,k : e.get('title')[:12]
 _abstract = lambda e,k : e.get('abstract')
@@ -60,6 +64,8 @@ def flatten(l):
         else:
             yield el
 
+
+# csv cols
 
 COLS = [
     ('genre', _list , "@article: genre"),
@@ -129,11 +135,9 @@ def tocsv():
 
     append = request.form.get('append', False)
     mode = "POST" if append else "PUT"
-    print mode, append, len(rows)
     
-    calc = "http://calc.padagraph.io/_/export-cillex-csv"
     if mode == "PUT":
-        r = requests.put(calc, data=to_csv(headers, rows))
+        r = requests.put(CALC_URL, data=to_csv(headers, rows))
 
     if mode == "POST":
         r = requests.post(calc, data=to_csv([], rows))
