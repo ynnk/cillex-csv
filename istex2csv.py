@@ -130,7 +130,7 @@ def to_csv(headers, rows):
 def tocsv():
     schema = """ 
 @refBibAuteurs: #label, shape[triangle-top]
-@auteurs: #label, shape[triangle-down]
+@auteurs: #label, shape[triangle-bottom]
 @keywords: #label, shape[diamond]
 @categories: #label, shape[diamond]
 """
