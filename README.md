@@ -24,4 +24,5 @@
 ## Notes
 
   # POST PUT to ethercalc with curl.
-  curl -i -X PUT --data-binary @/home/bruno/WORK/FORDEV_FORDEV_FORDEV_FORDEV/notebook_0/bidon.csv https://ethercalc.org/_/htkuiuytp8
+  curl -i -X PUT --data-binary @~/bidon.csv https://ethercalc.org/_/htkuiuytp8dj
+  
