@@ -16,12 +16,13 @@ html
     .ui.container
       .ui.hidden.divider
       .ui.segment
-       
+
+          
         form.ui.form(target="_self" action="?" method="POST")
          .fields
           .twelve.wide.field
-            label requete    
-            input(type='text' name='istexq' value="{{url}}")
+            label calc url    
+            input(type='text' name='calc' value="{{calc}}")
           .field
             label append
             {% if mode == "PUT" %}
@@ -30,26 +31,18 @@ html
             {% if mode == "POST" %}
             input.ui.blue.submit.button(type='checkbox' name="append" checked='checked' )
             {% endif %}
+         .fields
+          .twelve.wide.field
+            label requete    
+            input(type='text' name='urls' value="{{urls}}")
           .field
             label &nbsp;
-            input.ui.blue.submit.button(type='submit')
+            input.ui.blue.submit.button(type='submit')  
 
-      .ui.hidden.divider
-      
-      {% if table %}  
-      .ui.segment  
-        table.ui.celled.table
-         thead
-          tr
-           {% for item in headers %}
-           th {{item}}
-           {% endfor %}
-           
-         tbody
-          {% for row in rows %}
-          tr
-            {% for item in row %}
-            td {{ item }}
-            {% endfor %}
-          {% endfor %}
-      {% endif %}
+        .ui.hidden.divider
+
+        iframe(src='{{calc}}' style="width:100%; height:700px")
+
+        .ui.hidden.divider
+          
+        iframe(src='{{graph}}' style="width:100%; height:700px")

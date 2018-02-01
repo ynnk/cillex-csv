@@ -14,7 +14,7 @@ from StringIO import StringIO
 app = Flask(__name__)
 app.config['DEBUG'] = False
 
-CALC_URL = "http://calc.padagraph.io/_/export-cillex-csv"
+CALC_URL = "http://calc.padagraph.io/export-cillex-csv"
 
 
 # parse response attributes
@@ -68,11 +68,11 @@ def flatten(l):
 # csv cols
 
 COLS = [
-    ('genre', _list , "@article: genre"),
-    ('title', _key  ,  "title"),
+    ('genre', _list , "@article: title"),
+    ('title', _key  ,  "genre"),
     ('corpusName', _key ,  "corpusName" ),
     ('label', _label  ,  "label"),
-    ('author_names', _author_names ,  "%+ author_names"),
+    ('author_names', _author_names ,  "%+ auteurs"),
     #('author_affiliations', _author_affs ,  "%+author_affiliations"),
     ('abstract', _abstract ,  "abstract"),
     ('score', _key ,  "score"),
@@ -128,24 +128,49 @@ def to_csv(headers, rows):
 
 @app.route('/csv', methods=['GET', 'POST'])
 def tocsv():
-
-    url = request.form.get('istexq', None)
+    schema = """ 
+@refBibAuteurs: #label, shape[triangle-top]
+@auteurs: #label, shape[triangle-down]
+@keywords: #label, shape[diamond]
+@categories: #label, shape[diamond]
+"""
     
-    headers, rows = request_api(url)
-    table = headers and len(headers) > 0
-
+    urls = request.form.get('urls', "").split()
+    calc = request.form.get('calc', CALC_URL)
+    _calc = calc.split("/")
+    _calc = "/".join(_calc[:-1] + ['_'] + _calc[-1:])
+    
     append = request.form.get('append', False)
 
+    table = False
+    headers, rows = (None, None)
     mode = "POST" if append else "PUT"
+    graph = "http://localhost:5000/import/igraph.html?nofoot=1&s=%s&gid=cillex" % calc
 
-    if len(headers):
-        if mode == "PUT":
-            r = requests.put(CALC_URL, data=to_csv(headers, rows))
+        
+    for url in urls:
+        if not len(url) : continue
+        
+        headers, rows = request_api(url)
 
-        if mode == "POST":
-            r = requests.post(CALC_URL, data=to_csv([], rows))
+        table = headers and len(headers) > 0
 
-    return render_template('tocsv.html', table=table, mode=mode, headers=headers, rows=rows, url=url if url else "" )
+        if table:
+            if mode == "PUT":
+                print( "* PUT %s %s " % (_calc, len(rows)) ) 
+                r = requests.put(_calc, data=schema + "\n" + to_csv(headers, rows))
+            if mode == "POST":
+                print( "* POST %s %s " % (_calc, len(rows)) ) 
+                r = requests.post(_calc, data=to_csv([], rows))
+            mode = "POST"
+             
+    return render_template('tocsv.html',
+            table=table, mode=mode,
+            headers=headers, rows=rows,
+            calc=calc,
+            graph=graph,
+            urls= " ".join( urls if len(urls) else [] )
+            )
 
 
 from flask_runner import Runner
