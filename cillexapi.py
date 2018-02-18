@@ -107,7 +107,7 @@ def empty_graph(gid, **kwargs):
 
     graph = bot.get_igraph(weight_prop="weight")
     graph = prepare_graph(graph)
-    
+    graph['starred'] = []
     graph['meta'] = {
             'owner': None,
             'node_count': graph.vcount(),
