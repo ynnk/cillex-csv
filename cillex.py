@@ -13,8 +13,9 @@ from flask import render_template, render_template_string, abort, redirect, url_
 import istex2csv as istex
 
 # Flask,Login , cors
+DEBUG = os.environ.get('APP_DEBUG', "").lower() == "true"
 app = Flask(__name__)
-app.config['DEBUG'] = True
+app.config['DEBUG'] = DEBUG
 
 from reliure.utils.log import get_app_logger_color
 log_level = logging.INFO if app.config['DEBUG'] else logging.WARN
