@@ -84,7 +84,8 @@ def merge(gid, graph, g, **kwargs):
         if eid == -1:
             e['uuid'] = graph.ecount()
             graph.add_edge( v1, v2, **e.attributes() )
-
+    
+    graph['starred'] = []
     graph['meta'] = {
             'node_count': graph.vcount(),
             'edge_count': graph.ecount(),
