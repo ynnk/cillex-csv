@@ -45,8 +45,8 @@ print "Graphdb", graphdb
 
 CALC_URL = "http://calc.padagraph.io/export-cillex-csv-Y"
 #ENGINES_HOST = "http://localhost:5004"
-ENGINES_HOST = ""
 #STATIC_HOST = "http://localhost:5000"
+ENGINES_HOST = ""
 STATIC_HOST = ""
 
 from cillexapi import db_graph

@@ -1385,6 +1385,10 @@ var Graph = Backbone.Model.extend({
         // create a graph from json data
         Cello.debug("merge graph", data);
 
+        if (data.nodetypes)
+            this.nodetypes.set({ 'nodetypes': data.nodetypes } , {remove:false, parse:true});
+        if (data.edgetypes)
+            this.edgetypes.set({ 'edgetypes': data.edgetypes }, {remove:false, parse:true});
         
         this.vs.add(data.vs, {parse:true});
         this.es.add(data.es, {parse:true});
