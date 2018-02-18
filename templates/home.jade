@@ -1,0 +1,18 @@
+doctype html
+html
+  head
+    // Standard Meta
+    meta(charset='utf-8')
+    meta(http-equiv='X-UA-Compatible', content='IE=edge,chrome=1')
+    meta(name='viewport', content='width=device-width, initial-scale=1.0, maximum-scale=1.0')
+    // Site Properties
+
+    title istex/cillex
+    link(rel='stylesheet', href='https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.2.13/semantic.min.css')
+    style(type='text/css').
+
+  body
+
+    iframe( src="http://localhost:5004/csv" style="width:100%;height:300px")
+    
+    iframe( src="http://localhost:5000/import/igraph.html?nofoot=1&s=http://calc.padagraph.io/export-cillex-csv-Y&gid=cillex" style="width:100%;height:800px")

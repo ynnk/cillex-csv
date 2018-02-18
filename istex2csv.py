@@ -1,28 +1,22 @@
 #-*- coding:utf-8 -*-
 
-from flask import Flask, Response, make_response, g, current_app, request
-from flask import render_template, render_template_string, abort, redirect, url_for,  jsonify
-
-
-import sys
-#import csv
 import unicodecsv as csv
 import requests
+import urllib
 import collections
 from StringIO import StringIO
 
-app = Flask(__name__)
-app.config['DEBUG'] = False
-
-CALC_URL = "http://calc.padagraph.io/export-cillex-csv"
-
+from botapi import BotaIgraph
+from botapad import Botapad
 
 # parse response attributes
 _key = lambda e,k : e.get(k)
-_label = lambda e,k : e.get('title')[:12]
+_label = lambda e,k : e.get('title')
 _abstract = lambda e,k : e.get('abstract')
-_list = lambda e, k : ";".join(e.get(k))
 _keywords = lambda e, k : ";".join(e['keywords']['teeft']) if 'keywords' in e else ""
+
+def _list(e, k) :
+    return  ";".join(e.get(k, []))
 
 def _author_names( e, k ):
     s =  ";".join( [ v['name'] for v in  e['author'] ])
@@ -44,10 +38,10 @@ def _refBibAuteurs(article, k) :
 
 def _categories(article, k) :
     
-    l = []
+    l = set()
     for e in article.get('categories', [] ):
         for a in article['categories'][e]:
-            l.append( a[3:].strip() )
+            l.add( a[3:].strip().lower() )
 
     return clean( ";".join( l ) )
     
@@ -66,14 +60,20 @@ def flatten(l):
 
 
 # csv cols
+SCHEMA = [ 
+        "@refBibAuteurs: #label, shape[triangle-top]".split(','),
+        "@auteurs: #label, shape[triangle-bottom]".split(','),
+        "@keywords: #label, shape[diamond]".split(','), 
+        "@categories: #label, shape[diamond]".split(','),
+        ]
 
+        
 COLS = [
-    ('genre', _list , "@article: title"),
-    ('title', _key  ,  "genre"),
+    ('genre', _list , "@article: genre"),
+    ('title', _key  ,  "title"),
     ('corpusName', _key ,  "corpusName" ),
     ('label', _label  ,  "label"),
     ('author_names', _author_names ,  "%+ auteurs"),
-    #('author_affiliations', _author_affs ,  "%+author_affiliations"),
     ('abstract', _abstract ,  "abstract"),
     ('score', _key ,  "score"),
     ('keywords', _keywords ,  "%+ keywords"),
@@ -86,6 +86,7 @@ COLS = [
  ]
 
 """
+    ('author_affiliations', _author_affs ,  "%+author_affiliations"),
     ('publicationDate', ),
     ('ark', ),
     ('namedEntities', ),
@@ -104,9 +105,31 @@ COLS = [
     ('refBibs', ),
 """
 
+def get_schema():
+    cols = [ e[2] for e in COLS  ]
+    return SCHEMA + [cols]
+
+def to_istex_url(q, field, size=10):
+    q = q.encode("utf8")
+    if field == "auteurs":
+        qurl = "(%s)" % urllib.quote_plus("author.name:\"%s\"" % q )
+    elif field == "refBibAuteurs":
+        qurl = "(%s)" % urllib.quote_plus("refBibs.author.name:\"%s\"" % q )
+    else:
+        qurl = urllib.quote_plus( "%s" % q )
+
+    
+    url = "https://api.istex.fr/document/?q=%s&facet=corpusName[*]&size=%s&rankBy=qualityOverRelevance&output=*&stats" % ( qurl, size )
+
+    if field == "istex":
+        url = q
+
+    return url
+
 
 def request_api(url):
-    if url : 
+    if url :
+        print "requesting %s" % url
         data = requests.get(url).json()
         headers = [ "%s" % (e[2]) for e in COLS ]
         rows = [ [  e[1](hit, e[0]) for e in COLS ] for hit in data['hits'] ]
@@ -114,11 +137,22 @@ def request_api(url):
     else :
         return [], []
 
-        
+
+def request_api_to_graph(gid, url):
+    headers, rows = request_api(url)
+    bot = BotaIgraph(directed=True)
+    botapad = Botapad(bot , gid, "", delete=False, verbose=True, debug=False)
+    botapad.parse_csvrows( [headers] + rows, separator='auto', debug=False)
+    graph = bot.get_igraph(weight_prop="weight")
+    
+    return graph
+
+
+
 def to_csv(headers, rows):
     out = StringIO()
-    writer = csv.writer(out, quoting=csv.QUOTE_ALL , )
-    writer.writerow( headers )
+    writer = csv.writer(out, quoting=csv.QUOTE_ALL)
+    writer.writerows( headers )
 
     for row in rows :
         writer.writerow(row )
@@ -126,65 +160,66 @@ def to_csv(headers, rows):
     return out.getvalue()
 
 
-@app.route('/csv', methods=['GET', 'POST'])
-def tocsv():
-    schema = """ 
-@refBibAuteurs: #label, shape[triangle-top]
-@auteurs: #label, shape[triangle-bottom]
-@keywords: #label, shape[diamond]
-@categories: #label, shape[diamond]
-"""
+def graph_to_calc(graph):
     
-    urls = request.form.get('urls', "").split()
-    calc = request.form.get('calc', CALC_URL)
-    _calc = calc.split("/")
-    _calc = "/".join(_calc[:-1] + ['_'] + _calc[-1:])
+    headers = [ [ "! %s  V:%s E:%s" % ( graph['properties']['name'], graph.vcount(), graph.ecount())  ],[] ]
+    nodetypes = [ e['name'] for e in graph['nodetypes']]
     
-    append = request.form.get('append', False)
 
-    table = False
-    headers, rows = (None, None)
-    mode = "POST" if append else "PUT"
-    graph = "http://localhost:5000/import/igraph.html?nofoot=1&s=%s&gid=cillex" % calc
+    for k in nodetypes:
+        if k != "article":
+            headers.append(["@%s: #label" % k])
 
-        
-    for url in urls:
-        if not len(url) : continue
-        
-        headers, rows = request_api(url)
+    headers = headers + [[],[]]
 
-        table = headers and len(headers) > 0
+    keys = []
+    for i,col in enumerate(COLS):
+        col = col[0]
+        key = ""
+        if i == 0 :
+            key = "@article:"
+        if col == "author_names" : col = "auteurs"
+        isindex = col == "id"
+        isproj = col in nodetypes
+        key = "%s%s%s%s" % (key, "#" if isindex else "", "%+" if isproj else "", col)
+        keys.append(key)
 
-        if table:
-            if mode == "PUT":
-                print( "* PUT %s %s " % (_calc, len(rows)) ) 
-                r = requests.put(_calc, data=schema + "\n" + to_csv(headers, rows))
-            if mode == "POST":
-                print( "* POST %s %s " % (_calc, len(rows)) ) 
-                r = requests.post(_calc, data=to_csv([], rows))
-            mode = "POST"
-             
-    return render_template('tocsv.html',
-            table=table, mode=mode,
-            headers=headers, rows=rows,
-            calc=calc,
-            graph=graph,
-            urls= " ".join( urls if len(urls) else [] )
-            )
+    headers = headers + [keys] 
+    rows = []
+    nodetypes_idx = { e['uuid']:e for e in graph['nodetypes'] }
 
+    articles = [ v for v in graph.vs if nodetypes_idx[v['nodetype']]['name'] == "article" ]
 
-from flask_runner import Runner
-def main():
-    ## run the app
-    print "running main"
+    for v in articles:
+        row = []
+        for col in COLS:
+            col = col[0]
+            if col == "author_names" : col = "auteurs"
+            isindex = col == "id"
+            isproj = col in nodetypes
+            
+            #print col, isindex, isproj, nodetypes_idx[v['nodetype']]['name'], v["properties"]['label']
 
-    #build_app()
+            if not isproj:
+                row.append(v['properties'][col])
+            else:
+                cell = []
+                for e in v.neighbors():
+                    n = nodetypes_idx[e['nodetype']]['name']
+                    if n == col :
+                        cell.append(e['properties']['label'])
+                row.append(';'.join(cell))
+        rows.append(row)
+    return headers, rows
 
-    runner = Runner(app)
-    runner.run()
-
-if __name__ == '__main__':
-    sys.exit(main())
-
-
+    
+def pad_to_graph(gid, url):
+    bot = BotaIgraph(directed=True)
+    botapad = Botapad(bot , gid, "", delete=False, verbose=True, debug=False)
+    #botapad.parse(url, separator='auto', debug=app.config['DEBUG'])
+    botapad.parse(url, separator='auto', debug=False)
+    graph = bot.get_igraph(weight_prop="weight")
+    return graph
+    
+    
 

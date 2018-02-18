@@ -11,13 +11,12 @@ html
     link(rel='stylesheet', href='https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.2.13/semantic.min.css')
     style(type='text/css').
 
-  body
+  body( style="max-height:320px" )
 
     .ui.container
       .ui.hidden.divider
       .ui.segment
 
-          
         form.ui.form(target="_self" action="?" method="POST")
          .fields
           .twelve.wide.field
@@ -26,23 +25,28 @@ html
           .field
             label append
             {% if mode == "PUT" %}
-            input.ui.blue.submit.button(type='checkbox' name="append" )
+            input(type='checkbox' name="append" )
             {% endif %}
             {% if mode == "POST" %}
-            input.ui.blue.submit.button(type='checkbox' name="append" checked='checked' )
+            input(type='checkbox' name="append" checked='checked' )
             {% endif %}
          .fields
           .twelve.wide.field
             label requete    
-            input(type='text' name='urls' value="{{urls}}")
+            input(type='text' name='q' value="")
           .field
             label &nbsp;
-            input.ui.blue.submit.button(type='submit')  
+            input.ui.blue.submit.button(type='submit')
+            
+         .inline.fields
+          .field
+            label recherche sur un champ particulier: 
+            input( type='radio' name="champ" value="*")
+            label Aucun 
+            input( type='radio' name="champ" value="istex")
+            label Istex 
+            input( type='radio' name="champ" value="auteur")
+            label Auteur
+            input( type='radio' name="champ"  value="refBibAuteur" )
+            label refBibAuteur
 
-        .ui.hidden.divider
-
-        iframe(src='{{calc}}' style="width:100%; height:700px")
-
-        .ui.hidden.divider
-          
-        iframe(src='{{graph}}' style="width:100%; height:700px")

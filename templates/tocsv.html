@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.2.13/semantic.min.css">
     <style type="text/css"></style>
   </head>
-  <body>
+  <body style="max-height:320px">
     <div class="ui container">
       <div class="ui hidden divider"></div>
       <div class="ui segment">
@@ -22,26 +22,35 @@
             </div>
             <div class="field">
               <label>append</label>{% if mode == "PUT" %}
-              <input type="checkbox" name="append" class="ui blue submit button">{% endif %}
+              <input type="checkbox" name="append">{% endif %}
               {% if mode == "POST" %}
-              <input type="checkbox" name="append" checked="checked" class="ui blue submit button">{% endif %}
+              <input type="checkbox" name="append" checked="checked">{% endif %}
             </div>
           </div>
           <div class="fields">
             <div class="twelve wide field">
               <label>requete    </label>
-              <input type="text" name="urls" value="{{urls}}">
+              <input type="text" name="q" value="">
             </div>
             <div class="field">
               <label>&nbsp;</label>
               <input type="submit" class="ui blue submit button">
             </div>
           </div>
+          <div class="inline fields">
+            <div class="field">
+              <label>recherche sur un champ particulier: </label>
+              <input type="radio" name="champ" value="*">
+              <label>Aucun </label>
+              <input type="radio" name="champ" value="istex">
+              <label>Istex </label>
+              <input type="radio" name="champ" value="auteur">
+              <label>Auteur</label>
+              <input type="radio" name="champ" value="refBibAuteur">
+              <label>refBibAuteur</label>
+            </div>
+          </div>
         </form>
-        <div class="ui hidden divider"></div>
-        <iframe src="{{calc}}" style="width:100%; height:700px"></iframe>
-        <div class="ui hidden divider"></div>
-        <iframe src="{{graph}}" style="width:100%; height:700px"></iframe>
       </div>
     </div>
   </body>

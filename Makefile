@@ -1,4 +1,7 @@
 
+.PHONY: build
+
+
 
 jade:
 	@echo "\n ---------------------------"
@@ -8,4 +11,13 @@ jade:
 
 	cd ./templates && node ${NODE_MODULES}/jade/bin/jade.js -P *.jade
 
+statics :
+	@echo "\n ---------------------------"
+	@echo " * Building statics"
+	@echo " ---------------------------\n"
+
+	cp -rv ../../botapad/static ./
+
+
+build : jade statics
     
