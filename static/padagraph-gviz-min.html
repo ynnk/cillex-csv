@@ -10052,7 +10052,7 @@ require(['backbone', 'jquery', 'semantic', 'cello', 'gviz', 'materials', 'pdgcon
       this.completed = false;
 
       var isurl = function isurl(e) {
-        return _.isString(e) && e.length > 4 && e.toLowerCase().substring(0, 4) == "http";
+        return _.isString(e);
       };
 
       if (isurl(routes)) {
