@@ -94,7 +94,7 @@ def graphsearch(gid=None):
         'show_images': 0 if args.get("no_images", None ) else 1, # removes vertex images
         
         'auto_rotate': 0,
-        'adaptive_zoom': 0,
+        'adaptive_zoom': True,
             
     }
     

@@ -1396,7 +1396,8 @@ App.Base = Backbone.View.extend({
     },
 
     expand_graph: function(response){
-
+        // gets 10 first high score
+        // force uuid when scores== 1.
         console.log('expand_graph', response.results)
 
         if ( !response | !('results' in response)  )
@@ -1406,15 +1407,19 @@ App.Base = Backbone.View.extend({
         var uuids = [];
         
         var r = _.pairs(response.results.scores)
-        r.sort( function(a,b){ return (a[1]<b[1]) ?1 : -1 } )
+        r.sort( function(a,b){ return (a[1]<b[1]) ? 1 : -1 } )
 
         for ( var i in r ){
             var k = r[i][0];
             var v = r[i][1];
             
             if ( graph.vs.get(k) == null ){
+                if(uuids.length >= 10 )
+                    if (v < 1.)
+                        break;
+                        
+                console.log('expand_graph adding vertex : ' + k , v)
                 uuids.push(k);
-                if(uuids.length >= 10 ) break;
             }
         } 
 

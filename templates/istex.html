@@ -16,7 +16,7 @@
               
       #keb {
           min-width:350px;
-      }
+      }20a9b0cd620a9b0cd6
       
       #keb .close{
           background: #FFF;
@@ -220,9 +220,10 @@
                         // commons
                         'search':app.engines.search,
                         'expand':app.engines.expand_prox,
-                        'layout':app.engines.layout,
-                        'clustering':app.engines.clustering,
+                        //'layout':app.engines.layout,
+                        //'clustering':app.engines.clustering,
                         // extra
+                        'labels':app.engines.labels,
                         'import':app.engines.import,
                         'export':app.engines.export,
                     };
@@ -236,7 +237,6 @@
                     });
                     app.listenTo(engine, 'play:success', app.merge_graph );
                     
-            
                     var engine =  app.engines.export;
                     var additiveNodeQuery = new app.Models.AdditiveNodesQuery({graph: app.models.graph })
                     engine.register_input("request", additiveNodeQuery);

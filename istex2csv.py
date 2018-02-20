@@ -1,6 +1,7 @@
 #-*- coding:utf-8 -*-
 
 import unicodecsv as csv
+import json
 import requests
 import urllib
 import collections
@@ -162,15 +163,18 @@ def to_csv(headers, rows):
 
 def graph_to_calc(graph):
     
-    headers = [ [ "! %s  V:%s E:%s" % ( graph['properties']['name'], graph.vcount(), graph.ecount())  ],[] ]
+    comments = [
+            [ "! %s  V:%s E:%s" % ( graph['properties']['name'], graph.vcount(), graph.ecount())  ],
+            [ ], ] + [  ["! %s" % json.dumps(graph['queries'])  ] ]
+            
     nodetypes = [ e['name'] for e in graph['nodetypes']]
-    
 
+    headers = []        
     for k in nodetypes:
         if k != "article":
             headers.append(["@%s: #label" % k])
 
-    headers = headers + [[],[]]
+    headers = comments + headers + [[],[]]
 
     keys = []
     for i,col in enumerate(COLS):
@@ -219,6 +223,9 @@ def pad_to_graph(gid, url):
     #botapad.parse(url, separator='auto', debug=app.config['DEBUG'])
     botapad.parse(url, separator='auto', debug=False)
     graph = bot.get_igraph(weight_prop="weight")
+    graph['starred'] = []
+    graph['queries'] = []
+    
     return graph
     
     

@@ -2195,20 +2195,15 @@ gviz.ThreeVizHelpers = {
                 /* vertical text alignement */
                  if (material.textVerticalAlign == 'center'){
                     y = 1; 
-                    paddingY = y - i * + fontsize;                    
                 }
                 else if (material.textVerticalAlign == 'bottom'){
                     y = 0; 
-                    paddingY = y - i * -fontsize;
                 }
                 else //if (material.textVerticalAlign == 'top')
                 {
                     y = 0.5;
-                    paddingY = y - (i * -fontsize) / 2;
                 }
                 
-                // context.translate(0,y*material.scale);
-
                 /* horizontal text alignement */
                 if (material.textAlign == 'left'){
                     context.translate(1*material.scale,0);
@@ -2228,30 +2223,22 @@ gviz.ThreeVizHelpers = {
 
                 var token = text_lines[0][0];
                 var css = _this.node_materials[token.css];
+                var paddingRelX = css.paddingRelX | 0;
+                var paddingRelY = css.paddingRelY | 0;
 
                 // position & draw
                 var font = get_font(css.font, viz.user_font_size)
                 var fontsize = parseInt(/([0-9]*)px/.exec(font)[1])
                 context.font = font ;
         
-                var dimension = context.measureText("token.form");
-                var text_width = dimension.width;
-                var text_height = dimension.actualBoundingBoxDescent - dimension.actualBoundingBoxAscent;
+                var text_height = context.measureText('M').width;
 
-                //y = (text_height * text_lines.length) / 2
-                //console.log(y, text_height , text_lines.length)
-
+                y = y - ( (text_lines.length - 1) * text_height / 2. ) + ( i * text_height )
+                
                 _.each(text_lines[i], function (token, j){
-                    
-                    var paddingRelX = css.paddingRelX | 0;
-                    var paddingRelY = css.paddingRelY | 0;
-                    //update of padding
                     var xi = x + userPaddingX + paddingRelX;
-                    var yi = y - userPaddingY - paddingY - (i)*(  paddingRelY + (text_height | 0));
-
-                    var dimension = context.measureText(token.form);
-                    var text_width = dimension.width;
-                    var text_height = dimension.actualBoundingBoxDescent - dimension.actualBoundingBoxAscent;
+                    var yi = y - userPaddingY;
+                    
                     /* : TODO : text background */  
                     //maxX = Math.max(maxX, dimension.width + letter_width/2);
                     //context.fillStyle = "#F00";
@@ -2261,7 +2248,6 @@ gviz.ThreeVizHelpers = {
                     // text style
                     if (css.fontFillStyle){
                         set_context_style(context, "fillStyle", css.fontFillStyle);
-                        //set_context_style(context, "fillStyle", material.fillStyle);
                         context.fillText(token.form , xi, yi);
                     }
                     if (css.fontStrokeStyle && css.fontStrokeWidth ){
@@ -2271,6 +2257,7 @@ gviz.ThreeVizHelpers = {
                     }
 
                     //updating of x to print the rest of the text
+                    var text_width = context.measureText(token.form).width;
                     x  += text_width;
                 });
                 

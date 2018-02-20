@@ -84,8 +84,8 @@ def merge(gid, graph, g, **kwargs):
         if eid == -1:
             e['uuid'] = graph.ecount()
             graph.add_edge( v1, v2, **e.attributes() )
-    
-    graph['starred'] = []
+
+    graph['queries'].append(g['query'])
     graph['meta'] = {
             'node_count': graph.vcount(),
             'edge_count': graph.ecount(),
@@ -109,6 +109,7 @@ def empty_graph(gid, **kwargs):
     graph = bot.get_igraph(weight_prop="weight")
     graph = prepare_graph(graph)
     graph['starred'] = []
+    graph['queries'] = []
     graph['meta'] = {
             'owner': None,
             'node_count': graph.vcount(),
@@ -129,9 +130,8 @@ def query_istex(gid, q, field, count=10, **kwargs):
     
     graph['meta']['date'] = datetime.datetime.now().strftime("%Y-%m-%d %Hh%M")
     graph['meta']['owner'] = None
-    graph['meta']['query'] = q
+    graph['query'] = { 'q': q, 'field':field , 'url':url}
     
-    #graph['meta']['pedigree'] = pedigree.compute(graph)
     return graph
     
 
@@ -175,11 +175,11 @@ def extract_articles(gid, graph, cut=100, weighting=None, length=3):
     
     vs = pure_prox(graph, pz, length, wneighbors)
     vs = dict(sortcut(vs,cut))
-    return vs.keys()
+    return vs
     
 def graph_articles(gid, graph, **kwargs):
     vs = extract_articles(gid, graph, **kwargs)
-    return graph.subgraph( vs )
+    return graph.subgraph( vs.keys() )
     
 def search_engine(graphdb):
     """ Prox engine """
@@ -234,6 +234,8 @@ def import_calc_engine(graphdb):
             return None
         url = "http://calc.padagraph.io/cillex-%s" % calc_id
         graph = istex.pad_to_graph(calc_id, url)
+        graph['meta']['pedigree'] = pedigree.compute(graph)
+        graph['properties']['description'] = url
         graphdb.graphs[calc_id] = graph
         return graph_articles(calc_id, graph, cut=100)
         
@@ -246,14 +248,49 @@ def import_calc_engine(graphdb):
     engine.import_calc.set( comp )
 
     return engine
+
+class Clusters(GenericType):
+    def parse(self, data):
+        gid = data.get('graph', None)
+        clusters = data.get('clusters', None)
+
+        if gid is None :
+            raise ValueError('graph should not be null')
+        if clusters is None :
+            raise ValueError('clusters should not be null')
+
+        return data
+ 
+def clusters_labels_engine(graphdb):
+    def _labels(query, **kwargs):
+        query, graph = db_graph(graphdb, query)
+        clusters = []
+        for clust in query['clusters']:
+            pz = graph.select(uuid_in=clust)
+            pz = [ v.index for v in pz if  v['nodetype'] == ("_%s_article" % gid ) ]
+            if len(pz):
+                vs = extract_expand(graph, pz, cut=50, weighting=None, length=3)
+                labels = [ (graph.vs[i]['uuid'], graph.vs[i]['properties']['label'], v) for i,v in vs if graph.vs[i]['nodetype'] != ("_%s_article" % gid )][:10]
+                clusters.append(labels)
+        return clusters
+        
+    comp = Optionable("labels")
+    comp._func = _labels
+    comp.add_option("weighting", Text(choices=[ u"1" ,u"weight" , u"keywords", u"auteurs"], default=u"1", help="ponderation"))
+    
+    engine = Engine("labels")
+    engine.labels.setup(in_name="request", out_name="labels")
+    engine.labels.set( comp )
+
+    return engine
  
 def export_calc_engine(graphdb):
-    def _export_calc(query, calc_url=None, **kwargs):
+    def _export_calc(query, gid=None, **kwargs):
         query, graph = db_graph(graphdb, query)
-        if calc_url == None:
+        if gid == None:
             return None
-        url = "http://calc.padagraph.io/_/cillex-%s" % calc_url
-        print "_export_calc", query, calc_url, url
+        url = "http://calc.padagraph.io/_/cillex-%s" % gid
+        print "_export_calc", query, gid, url
 
         headers, rows = istex.graph_to_calc(graph)
         print headers
@@ -261,7 +298,12 @@ def export_calc_engine(graphdb):
         
         print( "* PUT %s %s " % (url, len(rows)) ) 
         r = requests.put(url, data=istex.to_csv(headers, rows))
-        return url
+
+        url = "http://calc.padagraph.io/cillex-%s" % gid
+        return { 'message' : "Calc exported ",
+                 'gid' : gid ,
+                 'url': url
+                }
         
     export = Optionable("export_calc")
     export._func = _export_calc
@@ -279,13 +321,12 @@ def export_calc_engine(graphdb):
 def extract_expand(graph, pz, cut=50, weighting=None, length=3, **kwargs):
     wneighbors = _weights(weighting)
     vs = pure_prox(graph, pz, length, wneighbors)
-    vs = dict(sortcut(vs,cut)).keys()
+    vs = sortcut(vs,cut)
     return vs
     
 def expand_prox_engine(graphdb):
     """
     prox with weights and filters on UNodes and UEdges types
-    
     input:  {
                 nodes : [ uuid, .. ],  //more complex p0 distribution
                 weights: [float, ..], //list of weight
@@ -297,7 +338,6 @@ def expand_prox_engine(graphdb):
     """
     engine = Engine("scores")
     engine.scores.setup(in_name="request", out_name="scores")
-        
 
     @Composable
     def Expand(query, **kwargs):
@@ -306,7 +346,13 @@ def expand_prox_engine(graphdb):
         gid = query.get("graph")
         
         field = "*"
-        v = graph.vs.select( uuid_in=query['nodes'] )[0]
+        q = query['nodes']
+        vs = graph.vs.select( uuid_in=q )
+        
+        if len(vs) == 0 :
+            raise ValueError('No such node %s' % q)
+
+        v = vs[0]
         if ( v['nodetype'] == ("_%s_auteurs" % gid) ):
             field = "auteurs"
             q = v['properties']['label']
@@ -321,8 +367,10 @@ def expand_prox_engine(graphdb):
 
         pz = [ v.index ]
         vs = extract_expand(graph, pz, **kwargs)
+        vs = [ (graph.vs[i]['uuid'],v) for i,v in vs]
+        articles = [ (v['uuid'], 1.) for v in graph.vs if v['nodetype'] == ("_%s_article" % gid) ]
+        return dict( articles + vs)
         
-        return vs
 
     scores = Optionable("scores")
     scores._func = Expand
@@ -375,4 +423,10 @@ def explore_api(engines,graphdb ):
     #clustering
     api = clustering_api(engines, api)
 
+    # cluster labels
+    view = EngineView(clusters_labels_engine(graphdb))
+    view.set_input_type(Clusters())
+    view.add_output("labels", lambda e: e )
+    api.register_view(view, url_prefix="labels")
+    
     return api

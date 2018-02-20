@@ -1389,6 +1389,10 @@ var Graph = Backbone.Model.extend({
             this.nodetypes.set({ 'nodetypes': data.nodetypes } , {remove:false, parse:true});
         if (data.edgetypes)
             this.edgetypes.set({ 'edgetypes': data.edgetypes }, {remove:false, parse:true});
+        if (data.meta)
+            this.meta.set(data.meta, {parse:true})
+        if (data.properties)
+            this.properties.set(data.properties, {parse:true})
         
         this.vs.add(data.vs, {parse:true});
         this.es.add(data.es, {parse:true});
