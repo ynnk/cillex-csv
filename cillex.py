@@ -108,10 +108,14 @@ from pdgapi import graphedit
 edit_api = graphedit.graphedit_api("graphs", app, graphdb, login_manager, None )
 app.register_blueprint(edit_api)
 
-from cillexapi import explore_api
 from pdglib.graphdb_ig import engines
+from pdgapi.explor import layout_api
+from cillexapi import explore_api, clustering_api
 
 api = explore_api(engines, graphdb)
+api = layout_api(engines, api)
+api = clustering_api(graphdb, engines, api)
+
 app.register_blueprint(api)
 
 from pdgapi import get_engines_routes

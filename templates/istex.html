@@ -237,6 +237,15 @@
                     });
                     app.listenTo(engine, 'play:success', app.merge_graph );
                     
+            
+                    var engine =  app.engines.labels;
+                    var cluster_query = new app.Models.ClustersLabelsQuery({ graph: app.models.graph, clustering : app.models.clustering })
+                    engine.register_input("request", cluster_query);
+                    app.listenTo( Backbone,"engine:labels", function(params){                            
+                        engine.play();
+                    });
+                    app.listenTo(engine, 'play:success', app.clusters_labels );
+                    
                     var engine =  app.engines.export;
                     var additiveNodeQuery = new app.Models.AdditiveNodesQuery({graph: app.models.graph })
                     engine.register_input("request", additiveNodeQuery);

@@ -480,6 +480,27 @@ Models.ExpandNodesQuery = Backbone.Model.extend({
 
 });
 
+Models.ClustersLabelsQuery = Backbone.Model.extend({
+    defaults : {
+        graph : null,
+        clustering: [], // clustering model
+    },
+    
+    export_for_engine: function(){
+        var model = this.get('clustering')
+        var cls = model.clusters.models;
+        var clusters = cls.map( function(e){
+            var uuids = e.members.vs.models.map(function(v){ return v.id });
+            return uuids;
+        });
+        
+        return { graph: this.get('graph').get('gid'),
+                 clusters: clusters,
+               };
+    },
+
+});
+
 Models.AdditiveNodesQuery = Backbone.Model.extend({
     defaults : {
         graph : null,

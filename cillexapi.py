@@ -248,41 +248,6 @@ def import_calc_engine(graphdb):
     engine.import_calc.set( comp )
 
     return engine
-
-class Clusters(GenericType):
-    def parse(self, data):
-        gid = data.get('graph', None)
-        clusters = data.get('clusters', None)
-
-        if gid is None :
-            raise ValueError('graph should not be null')
-        if clusters is None :
-            raise ValueError('clusters should not be null')
-
-        return data
- 
-def clusters_labels_engine(graphdb):
-    def _labels(query, **kwargs):
-        query, graph = db_graph(graphdb, query)
-        clusters = []
-        for clust in query['clusters']:
-            pz = graph.select(uuid_in=clust)
-            pz = [ v.index for v in pz if  v['nodetype'] == ("_%s_article" % gid ) ]
-            if len(pz):
-                vs = extract_expand(graph, pz, cut=50, weighting=None, length=3)
-                labels = [ (graph.vs[i]['uuid'], graph.vs[i]['properties']['label'], v) for i,v in vs if graph.vs[i]['nodetype'] != ("_%s_article" % gid )][:10]
-                clusters.append(labels)
-        return clusters
-        
-    comp = Optionable("labels")
-    comp._func = _labels
-    comp.add_option("weighting", Text(choices=[ u"1" ,u"weight" , u"keywords", u"auteurs"], default=u"1", help="ponderation"))
-    
-    engine = Engine("labels")
-    engine.labels.setup(in_name="request", out_name="labels")
-    engine.labels.set( comp )
-
-    return engine
  
 def export_calc_engine(graphdb):
     def _export_calc(query, gid=None, **kwargs):
@@ -318,7 +283,7 @@ def export_calc_engine(graphdb):
 
 
 @Composable
-def extract_expand(graph, pz, cut=50, weighting=None, length=3, **kwargs):
+def extract(graph, pz, cut=50, weighting=None, length=3, **kwargs):
     wneighbors = _weights(weighting)
     vs = pure_prox(graph, pz, length, wneighbors)
     vs = sortcut(vs,cut)
@@ -366,7 +331,7 @@ def expand_prox_engine(graphdb):
         graph = merge(gid, graph, g)
 
         pz = [ v.index ]
-        vs = extract_expand(graph, pz, **kwargs)
+        vs = extract(graph, pz, **kwargs)
         vs = [ (graph.vs[i]['uuid'],v) for i,v in vs]
         articles = [ (v['uuid'], 1.) for v in graph.vs if v['nodetype'] == ("_%s_article" % gid) ]
         return dict( articles + vs)
@@ -418,15 +383,101 @@ def explore_api(engines,graphdb ):
     view.add_output("url", lambda e: e )
     api.register_view(view, url_prefix="export")    
 
-    #layout
-    api = layout_api(engines, api)
-    #clustering
-    api = clustering_api(engines, api)
+    return api
+
+
+class Clusters(GenericType):
+    def parse(self, data):
+        gid = data.get('graph', None)
+        clusters = data.get('clusters', None)
+
+        if gid is None :
+            raise ValueError('graph should not be null')
+        if clusters is None :
+            raise ValueError('clusters should not be null')
+
+        return data
+ 
+def clusters_labels_engine(graphdb):
+    def _labels(query, weighting=None, **kwargs):
+        query, graph = db_graph(graphdb, query)
+        gid = query['graph']
+        clusters = []
+        for clust in query['clusters']:
+            pz = graph.vs.select(uuid_in=clust)
+            pz = [ v.index for v in pz if  v['nodetype'] == ("_%s_article" % gid ) ]
+            if len(pz):
+                vs = extract(graph, pz, cut=50, weighting=weighting, length=3)
+                labels = [ (graph.vs[i]['uuid'], graph.vs[i]['properties']['label'], v) for i,v in vs if graph.vs[i]['nodetype'] != ("_%s_article" % gid )][:10]
+                clusters.append(labels)
+        return clusters
+        
+    comp = Optionable("labels")
+    comp._func = _labels
+    comp.add_option("weighting", Text(choices=[ u"1" ,u"weight" , u"keywords", u"auteurs"], default=u"1", help="ponderation"))
+    
+    engine = Engine("labels")
+    engine.labels.setup(in_name="request", out_name="labels")
+    engine.labels.set( comp )
+
+    return engine
+
+# Clusters
+
+def clustering_api(graphdb, engines, api=None, optionables=None, prefix="clustering"):
+    
+    def clustering_engine(optionables):
+        """ Return a default engine over a lexical graph
+        """
+        # setup
+        engine = Engine("gbuilder", "clustering", "labelling")
+        engine.gbuilder.setup(in_name="request", out_name="graph", hidden=True)
+        engine.clustering.setup(in_name="graph", out_name="clusters")
+        engine.labelling.setup(in_name="clusters", out_name="clusters", hidden=True)
+
+        engine.gbuilder.set(engines.edge_subgraph) 
+        engine.clustering.set(*optionables)
+
+        ## Labelling
+        from cello.clustering.labelling.model import Label
+        from cello.clustering.labelling.basic import VertexAsLabel, TypeFalseLabel, normalize_score_max
+
+        def _labelling(graph, cluster, vtx):
+            print vtx.attributes()
+            return  Label(vtx["uuid"], score=1, role="default")
+        
+        labelling = VertexAsLabel( _labelling ) | normalize_score_max
+        engine.labelling.set(labelling)
+
+        return engine
+        
+    if api is None:
+        api = ReliureAPI(name,expose_route = False)
+        
+    ## Clustering
+    from cello.graphs.transform import EdgeAttr
+    from cello.clustering.common import Infomap, Walktrap
+    # weighted
+    walktrap = Walktrap(weighted=True)
+    walktrap.name = "Walktrap"
+    infomap = Infomap(weighted=True) 
+    infomap.name = "Infomap"
+
+    DEFAULTS = [walktrap, infomap]
+
+    if optionables == None : optionables = DEFAULTS
+
+    from pdgapi.explor  import EdgeList
+    view = EngineView(clustering_engine(optionables))
+    view.set_input_type(EdgeList())
+    view.add_output("clusters", export_clustering,  vertex_id_attr='uuid')
+    api.register_view(view, url_prefix=prefix)
 
     # cluster labels
     view = EngineView(clusters_labels_engine(graphdb))
     view.set_input_type(Clusters())
     view.add_output("labels", lambda e: e )
     api.register_view(view, url_prefix="labels")
-    
+  
+
     return api
