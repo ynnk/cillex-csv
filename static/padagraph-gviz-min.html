@@ -10236,6 +10236,7 @@ require(['backbone', 'cello', 'gviz', 'materials', 'pdgconst'], function (Backbo
 
             var gviz = Gviz.SimpleViz(graph, options);
             gviz.enable();
+            gviz.clustering = app.models.clustering;
             gviz.animate();
 
             app.set_viz(gviz);

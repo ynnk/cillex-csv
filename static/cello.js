@@ -2579,6 +2579,8 @@ function random_int(min, max) {
             
             this.trigger("reset");
         },
+        set_labels: function(data, options){
+        },
     });
 
 // == cellojs/utils.js ==

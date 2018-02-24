@@ -1183,7 +1183,6 @@ gviz.ThreeViz = Backbone.View.extend({
         this.renderer.setClearColor(clear_color.getHex());
         $(this.renderer.domElement).css("background-color", clear_color.getStyle() );
         this.clear_color = clear_color;
-
     },
 
     /** Called when the window is resized */
@@ -1347,7 +1346,7 @@ gviz.ThreeViz = Backbone.View.extend({
         return this.set_material(otype, name, material)
     },
 
-    set_material: function (otype, name, material){
+    set_material: function (otype, name, material) {
         /* set a material TODO: desc font, ...
          * otype : 'node' or 'edge'
          * name  : material name matching a flag
@@ -1704,6 +1703,7 @@ gviz.ThreeViz = Backbone.View.extend({
         // render frame
         this.render();
         
+        
         // determine if tween animation are curently running
         var has_tweens = TWEEN.getAll().length > 0;
 
@@ -1751,6 +1751,7 @@ gviz.ThreeViz = Backbone.View.extend({
         this.renderer.ENABLE_FOG = this.ENABLE_FOG;
 
         this.renderer.render( this.scene, this.camera );
+        this.renderClustersLabels(ctx);
 
         if (this.debug)
         {
@@ -1760,6 +1761,52 @@ gviz.ThreeViz = Backbone.View.extend({
         return this;
     },
 
+    renderClustersLabels: function (context){
+        if (! this.clustering){ return ;}
+        
+        var gviz = this;
+        for (var i in this.clustering.clusters.models){
+            var cluster = this.clustering.clusters.models[i];
+            var members = cluster.members.vs.models,
+                labels = cluster.labels.models;
+            var n = 0,
+                point = {x:0, y:0, minX:100000, maxX:0, minY:0, maxY:0};
+
+            members.forEach( function(e,i){
+                var v = gviz.wnidx[e.id];
+                if ( v.screenX < 0 ) return;
+                
+                var x = v.screenX;
+                var y = v.screenY;
+                n ++;
+                point.y += y
+                point.x += x
+                point.minX = Math.min( x, point.minX )
+                point.maxX = Math.max( x, point.maxX )
+                point.minY = Math.min( y, point.minY )
+                point.maxY = Math.max( y, point.maxY )
+                v.screenX = -1; // 
+            } );
+            
+            var color = "rgb(" + cluster.color.join(',') + ")";
+            var label = "Cluster " + i;
+            var width = context.measureText(label).width;
+        
+            point.y = point.y / n; 
+            if ( n == 1 ){
+                point.x = point.x - width/2; 
+            }
+            else {
+                point.x = point.minX  +  ( point.maxX - point.minX - width)/2 ;
+            }
+            context.font =  (30 + n ) +  "px Arial";
+            context.strokeStyle = "#333";
+            context.strokeText(label ,point.x, point.y);
+            context.fillStyle = color;
+            context.fillText(label ,point.x, point.y);
+        }
+        
+    },
 
     print_debug: function (){
         var $debug =$(".gviz-debug", this.$el);
@@ -3861,16 +3908,14 @@ gviz.GraphRenderer = function ( parameters ) {
            _context.fillRect( _clipBox.min.x, _clipBox.min.y, _clipBox.max.x - _clipBox.min.x, _clipBox.max.y - _clipBox.min.y );
         */
 
-
         for ( var e = 0, el = _elements.length; e < el; e ++ ) {
 
             var element = _elements[ e ];
-
             var material = element.material;
 
             if ( material === undefined || material.visible === false ) continue;
 
-                _elemBox.makeEmpty();
+            _elemBox.makeEmpty();
 
             if ( element instanceof THREE.RenderableSprite ) {
 
@@ -3880,6 +3925,15 @@ gviz.GraphRenderer = function ( parameters ) {
                 element.object.x = _v1.x;
                 element.object.y = _v1.y;
 
+                var vector = new THREE.Vector3();
+                vector.setFromMatrixPosition( element.object.matrixWorld )
+                vector.project( camera );
+                vector.x = ( vector.x * _canvasWidthHalf ) + _canvasWidthHalf;
+                vector.y = - ( vector.y * _canvasHeightHalf ) + _canvasHeightHalf;
+                
+                element.object.screenX = vector.x;
+                element.object.screenY = vector.y;
+                
                 renderSprite( _v1, element, material );
 
             } else if ( element instanceof THREE.RenderableLine ) {
@@ -3951,6 +4005,8 @@ gviz.GraphRenderer = function ( parameters ) {
         */
 
         _context.setTransform( 1, 0, 0, 1, 0, 0 );
+
+        
 
     };
 
