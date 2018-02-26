@@ -1767,8 +1767,9 @@ gviz.ThreeViz = Backbone.View.extend({
         var gviz = this;
         for (var i in this.clustering.clusters.models){
             var cluster = this.clustering.clusters.models[i];
-            var members = cluster.members.vs.models,
-                labels = cluster.labels.models;
+
+            
+            var members = cluster.members.vs.models;
             var n = 0,
                 point = {x:0, y:0, minX:100000, maxX:0, minY:0, maxY:0};
 
@@ -1788,8 +1789,12 @@ gviz.ThreeViz = Backbone.View.extend({
                 v.screenX = -1; // 
             } );
             
-            var color = "rgb(" + cluster.color.join(',') + ")";
             var label = "Cluster " + i;
+            if ( cluster.labels || cluster.labels.length) {
+                var labels = cluster.labels.map( function(e){ return e.label } )
+                label = labels.join( ", " );
+            }
+            var color = "rgb(" + cluster.color.join(',') + ")";
             var width = context.measureText(label).width;
         
             point.y = point.y / n; 
@@ -1799,7 +1804,7 @@ gviz.ThreeViz = Backbone.View.extend({
             else {
                 point.x = point.minX  +  ( point.maxX - point.minX - width)/2 ;
             }
-            context.font =  (30 + n ) +  "px Arial";
+            context.font =  Math.min(25, 14 + n ) +  "px Arial";
             context.strokeStyle = "#333";
             context.strokeText(label ,point.x, point.y);
             context.fillStyle = color;

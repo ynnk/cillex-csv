@@ -1573,17 +1573,22 @@ App.Base = Backbone.View.extend({
     },
 
     clusters_labels: function(response, options){
-        
+        this.models.clustering.set_labels(response.results, options);
     },
 
     merge_graph: function(response, options){
-
                     
         if ( !response | !('results' in response)  | !('graph' in response.results))
             return;
 
+        this.set_auto_compute( false );
+        
+        //Backbone.trigger( Const.unselect_nodes );
+        //Backbone.trigger( Const.unselect_edges );
+        //Backbone.trigger('engine:request_animation');
+
         // merge graph
-        this.models.clustering.set_labels(response.results.labels);
+        this.models.graph.merge(response.results.graph);
         this.models.graph.vs.each(function(vtx){
             vtx.add_flag("form");
         });

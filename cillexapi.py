@@ -399,22 +399,26 @@ class Clusters(GenericType):
         return data
  
 def clusters_labels_engine(graphdb):
-    def _labels(query, weighting=None, **kwargs):
+    def _labels(query, weighting=None, count=2, **kwargs):
         query, graph = db_graph(graphdb, query)
         gid = query['graph']
         clusters = []
         for clust in query['clusters']:
-            pz = graph.vs.select(uuid_in=clust)
-            pz = [ v.index for v in pz if  v['nodetype'] == ("_%s_article" % gid ) ]
-            if len(pz):
-                vs = extract(graph, pz, cut=50, weighting=weighting, length=3)
-                labels = [ (graph.vs[i]['uuid'], graph.vs[i]['properties']['label'], v) for i,v in vs if graph.vs[i]['nodetype'] != ("_%s_article" % gid )][:10]
-                clusters.append(labels)
+            labels = []
+            if weighting != "No":
+                pz = graph.vs.select(uuid_in=clust)
+                pz = [ v.index for v in pz if  v['nodetype'] == ("_%s_article" % gid ) ]
+                if len(pz):
+                    vs = extract(graph, pz, cut=50, weighting=weighting, length=3)
+                    labels = [ { 'uuid' : graph.vs[i]['uuid'],
+                                 'label' : graph.vs[i]['properties']['label'],
+                                 'score' :  v }  for i,v in vs if graph.vs[i]['nodetype'] != ("_%s_article" % gid )][:count]
+            clusters.append(labels)
         return clusters
         
     comp = Optionable("labels")
     comp._func = _labels
-    comp.add_option("weighting", Text(choices=[ u"1" ,u"weight" , u"keywords", u"auteurs"], default=u"1", help="ponderation"))
+    comp.add_option("weighting", Text(choices=[  u"No", u"1" ,u"weight" , u"keywords", u"auteurs"], default=u"1", help="ponderation"))
     
     engine = Engine("labels")
     engine.labels.setup(in_name="request", out_name="labels")
@@ -430,24 +434,12 @@ def clustering_api(graphdb, engines, api=None, optionables=None, prefix="cluster
         """ Return a default engine over a lexical graph
         """
         # setup
-        engine = Engine("gbuilder", "clustering", "labelling")
+        engine = Engine("gbuilder", "clustering")
         engine.gbuilder.setup(in_name="request", out_name="graph", hidden=True)
         engine.clustering.setup(in_name="graph", out_name="clusters")
-        engine.labelling.setup(in_name="clusters", out_name="clusters", hidden=True)
 
         engine.gbuilder.set(engines.edge_subgraph) 
         engine.clustering.set(*optionables)
-
-        ## Labelling
-        from cello.clustering.labelling.model import Label
-        from cello.clustering.labelling.basic import VertexAsLabel, TypeFalseLabel, normalize_score_max
-
-        def _labelling(graph, cluster, vtx):
-            print vtx.attributes()
-            return  Label(vtx["uuid"], score=1, role="default")
-        
-        labelling = VertexAsLabel( _labelling ) | normalize_score_max
-        engine.labelling.set(labelling)
 
         return engine
         
