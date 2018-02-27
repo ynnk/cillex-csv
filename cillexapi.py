@@ -419,6 +419,7 @@ def clusters_labels_engine(graphdb):
     comp = Optionable("labels")
     comp._func = _labels
     comp.add_option("weighting", Text(choices=[  u"No", u"1" ,u"weight" , u"keywords", u"auteurs"], default=u"1", help="ponderation"))
+    comp.add_option("count", Numeric( vtype=int, min=1, default=2))
     
     engine = Engine("labels")
     engine.labels.setup(in_name="request", out_name="labels")
