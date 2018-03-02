@@ -250,29 +250,27 @@ def import_calc_engine(graphdb):
     return engine
  
 def export_calc_engine(graphdb):
-    def _export_calc(query, gid=None, **kwargs):
+    def _export_calc(query, calc_id=None, **kwargs):
         query, graph = db_graph(graphdb, query)
-        if gid == None:
+        if calc_id == None:
             return None
-        url = "http://calc.padagraph.io/_/cillex-%s" % gid
-        print "_export_calc", query, gid, url
+        url = "http://calc.padagraph.io/_/cillex-%s" % calc_id
+        print "_export_calc", query, calc_id, url
 
         headers, rows = istex.graph_to_calc(graph)
-        print headers
-        print rows
-        
         print( "* PUT %s %s " % (url, len(rows)) ) 
+        
         r = requests.put(url, data=istex.to_csv(headers, rows))
+        url = "http://calc.padagraph.io/cillex-%s" % calc_id
 
-        url = "http://calc.padagraph.io/cillex-%s" % gid
         return { 'message' : "Calc exported ",
-                 'gid' : gid ,
+                 'gid' : calc_id ,
                  'url': url
                 }
         
     export = Optionable("export_calc")
     export._func = _export_calc
-    export.add_option("calc_url", Text(default=None, help="url to export calc"))
+    export.add_option("calc_id", Text(default=None, help="export calc id"))
     
     engine = Engine("export")
     engine.export.setup(in_name="request", out_name="url")
