@@ -12,6 +12,12 @@ from botapad import Botapad
 
 # parse response attributes
 _key = lambda e,k : e.get(k)
+
+def _link(article, k) :
+    i = article.get("id")
+    url = "https://api.istex.fr/document/%s/fulltext/pdf?sid=istex-api-demo" % i
+    return url
+    
 _label = lambda e,k : e.get('title')
 _abstract = lambda e,k : e.get('abstract')
 _keywords = lambda e, k : ";".join(e['keywords']['teeft']) if 'keywords' in e else ""
@@ -37,14 +43,15 @@ def _refBibAuteurs(article, k) :
     s =  ";".join( auteurs )
     return clean(s)
 
-def _categories(article, k) :
+
     
+def _categories(article, k) :
     l = set()
     for e in article.get('categories', [] ):
         for a in article['categories'][e]:
             l.add( a[3:].strip().lower() )
-
     return clean( ";".join( l ) )
+
     
 def clean(s):
     s = s.replace(',', '')
@@ -82,6 +89,7 @@ COLS = [
     ('pmid', _key  ,  "pmid"),
     ('refBibAuteurs', _refBibAuteurs, "%+ refBibAuteurs"),
     ('id', _key, "#id"),
+    ('lien', _link, "lien"),
     ('shape', lambda e,k: "square"  ,  "shape"),
     ('categories', _categories  ,  "%+categories"),
  ]
