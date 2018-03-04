@@ -71,15 +71,14 @@ def flatten(l):
         else:
             yield el
 
-            
 SHAPES = {
-           "article" : u"square",
-           "refBibAuteurs" : u"diamond",
-           "auteurs" : u"circle",
-           "keywords" : u"triangle-top",
-           "categories" : u"triangle-bottom",
-         }
-SCHEMA = [ [ "@%s: #label" % k , "shape[%s]" %v ]  for k,v in SHAPES.items() if k != "article"]
+    "article" : u"square",
+    "refBibAuteurs" : u"diamond",
+    "auteurs" : u"circle",
+    "keywords" : u"triangle-top",
+    "categories" : u"triangle-bottom",
+ }
+
         
 COLS = [
     ('genre', _list , "", "genre"),
@@ -120,9 +119,13 @@ COLS = [
     ('refBibs', ),
 """
 
-def get_schema():
-    cols = [ e[2] for e in COLS  ]
-    return SCHEMA + [cols]
+def get_schema():           
+    SCHEMA = [ [ "@%s: #label" % k , "shape[%s]" %v ]  for k,v in SHAPES.items() if k != "article"]
+    headers = [ "%s%s" % (e[2],e[3]) for e in COLS ]
+    headers[0] = "@article: %s" % headers[0]
+    headers = SCHEMA + [headers]
+
+    return headers
 
 def to_istex_url(q, field, size=10):
     q = q.encode("utf8")
@@ -135,7 +138,6 @@ def to_istex_url(q, field, size=10):
     else:
         qurl = urllib.quote_plus( "%s" % q )
 
-    
     url = "https://api.istex.fr/document/?q=%s&facet=corpusName[*]&size=%s&rankBy=qualityOverRelevance&output=*&stats" % ( qurl, size )
 
     if field == "istex":
@@ -149,12 +151,10 @@ def request_api(url):
         print "requesting %s" % url
         data = requests.get(url).json()
         
-        headers = [ "%s%s" % (e[2],e[3]) for e in COLS ]
-        headers[0] = "@article: %s" % headers[0]
-        headers = SCHEMA + [headers]
-
+        headers = get_schema()
         rows = [ [  e[1](hit, e[0]) for e in COLS ] for hit in data['hits'] ]
         return headers, rows
+
     else :
         return [], []
 

@@ -1351,7 +1351,6 @@ var Graph = Backbone.Model.extend({
         // create a graph from json data
         Cello.debug("parse graph", data);
 
-
         if (data.nodetypes)
         {
             this.nodetypes.set({ 'nodetypes': data.nodetypes } , {parse:true});

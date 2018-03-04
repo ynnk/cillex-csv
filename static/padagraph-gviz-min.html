@@ -8477,7 +8477,8 @@ require(['backbone', 'cello', 'gviz', 'materials', 'pdgconst'], function (Backbo
     observers: ["create_once(app, graph, options)"]
 
   });
-});</script></dom-module><dom-module id="keb-option" assetpath="./"><style></style><template><template is="dom-if" if="{{ isBoolean(option) }}"><div class="ui checkbox"><input type="checkbox" on-change="bool_changed" checked="{{value::input}}"><label>{{option.name}}</label></div></template><template is="dom-if" if="{{ isEditable(option) }}"><label>{{option.name}} {{option.otype.help}}</label><input value="{{value::input}}"><br></template><template is="dom-if" if="{{ isChoice(option) }}"><label>{{option.name}} {{option.otype.help}}</label><select value="{{value::input}}"><template is="dom-repeat" items="[[option.otype.choices]]"><option selected$="{{isSelected(option, item)}}" value="{{item}}">{{item}} </option></template></select></template></template><script>'use strict';
+});</script></dom-module><dom-module id="keb-option" assetpath="./"><style>label .name { font-weight:bold; }
+</style><template><template is="dom-if" if="{{ isBoolean(option) }}"><div class="ui checkbox"><input type="checkbox" on-change="bool_changed" checked="{{value::input}}"><label>{{option.name}}</label></div></template><template is="dom-if" if="{{ isEditable(option) }}"><label><span class="name">{{option.name}} :</span><br><span class="help">{{option.otype.help}}</span></label><input value="{{value::input}}"><br></template><template is="dom-if" if="{{ isChoice(option) }}"><label>{{option.name}} {{option.otype.help}}</label><select value="{{value::input}}"><template is="dom-repeat" items="[[option.otype.choices]]"><option selected$="{{isSelected(option, item)}}" value="{{item}}">{{item}} </option></template></select></template></template><script>'use strict';
 
 require(['backbone', 'cello', 'gviz', 'materials', 'pdgconst'], function (Backbone, Cello, Gviz, Materials, Const) {
   Polymer({

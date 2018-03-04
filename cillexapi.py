@@ -243,7 +243,7 @@ def import_calc_engine(graphdb):
         
     comp = Optionable("import_calc")
     comp._func = _import_calc
-    comp.add_option("calc_id", Text(default=None, help="url to import calc"))
+    comp.add_option("calc_id", Text(default=None, help="identifiant du calc,le calc sera importé depuis l'adresse http://calc.padagraph.io/cillex-{calc-id}"))
     
     engine = Engine("import_calc")
     engine.import_calc.setup(in_name="request", out_name="graph")
