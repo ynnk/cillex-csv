@@ -13,9 +13,14 @@ from botapad import Botapad
 # parse response attributes
 _key = lambda e,k : e.get(k)
 
-def _link(article, k) :
+def _fulltext(article, k) :
     i = article.get("id")
     url = "https://api.istex.fr/document/%s/fulltext/pdf?sid=istex-api-demo" % i
+    return url
+    
+def _document(article, k) :
+    i = article.get("id")
+    url = "https://api.istex.fr/document/%s" % i
     return url
     
 _label = lambda e,k : e.get('title')
@@ -66,32 +71,33 @@ def flatten(l):
         else:
             yield el
 
-
-# csv cols
-SCHEMA = [ 
-        "@refBibAuteurs: #label, shape[triangle-top]".split(','),
-        "@auteurs: #label, shape[triangle-bottom]".split(','),
-        "@keywords: #label, shape[diamond]".split(','), 
-        "@categories: #label, shape[diamond]".split(','),
-        ]
-
+            
+SHAPES = {
+           "article" : u"square",
+           "refBibAuteurs" : u"diamond",
+           "auteurs" : u"circle",
+           "keywords" : u"triangle-top",
+           "categories" : u"triangle-bottom",
+         }
+SCHEMA = [ [ "@%s: #label" % k , "shape[%s]" %v ]  for k,v in SHAPES.items() if k != "article"]
         
 COLS = [
-    ('genre', _list , "@article: genre"),
-    ('title', _key  ,  "title"),
-    ('corpusName', _key ,  "corpusName" ),
-    ('label', _label  ,  "label"),
-    ('author_names', _author_names ,  "%+ auteurs"),
-    ('abstract', _abstract ,  "abstract"),
-    ('score', _key ,  "score"),
-    ('keywords', _keywords ,  "%+ keywords"),
-    ('originalGenre', _list  ,  "originalGenre"),
-    ('pmid', _key  ,  "pmid"),
-    ('refBibAuteurs', _refBibAuteurs, "%+ refBibAuteurs"),
-    ('id', _key, "#id"),
-    ('lien', _link, "lien"),
-    ('shape', lambda e,k: "square"  ,  "shape"),
-    ('categories', _categories  ,  "%+categories"),
+    ('genre', _list , "", "genre"),
+    ('title', _key  , "", "title"),
+    ('corpusName', _key , "",  "corpusName" ),
+    ('', _label  , "",  "label"),
+    ('', _fulltext, "", "fulltext"),
+    ('', _document, "", "document"),
+    ('abstract', _abstract , "", "text_abstract"),
+    ('id', _key, "#", "id"),
+    ('author_names', _author_names ,  "%+", "auteurs"),
+    ('score', _key , "", "score"),
+    ('keywords', _keywords ,  "%+", "keywords"),
+    ('originalGenre', _list  , "",  "originalGenre"),
+    ('refBibAuteurs', _refBibAuteurs, "%+", "refBibAuteurs"),
+    ('categories', _categories  ,  "%+", "categories"),
+    ('pmid', _key  , "", "pmid"),
+    ('shape', lambda e,k: SHAPES.get('article', u"circle")  ,  "", "shape"),
  ]
 
 """
@@ -124,6 +130,8 @@ def to_istex_url(q, field, size=10):
         qurl = "(%s)" % urllib.quote_plus("author.name:\"%s\"" % q )
     elif field == "refBibAuteurs":
         qurl = "(%s)" % urllib.quote_plus("refBibs.author.name:\"%s\"" % q )
+    elif field == "keywords":
+        qurl = "(%s)" % urllib.quote_plus("keywords.teeft:\"%s\"" % q )
     else:
         qurl = urllib.quote_plus( "%s" % q )
 
@@ -140,7 +148,11 @@ def request_api(url):
     if url :
         print "requesting %s" % url
         data = requests.get(url).json()
-        headers = [ "%s" % (e[2]) for e in COLS ]
+        
+        headers = [ "%s%s" % (e[2],e[3]) for e in COLS ]
+        headers[0] = "@article: %s" % headers[0]
+        headers = SCHEMA + [headers]
+
         rows = [ [  e[1](hit, e[0]) for e in COLS ] for hit in data['hits'] ]
         return headers, rows
     else :
@@ -149,9 +161,11 @@ def request_api(url):
 
 def request_api_to_graph(gid, url):
     headers, rows = request_api(url)
+    #print "HEADERS \n", headers
+    #print "ROWS \n", rows
     bot = BotaIgraph(directed=True)
     botapad = Botapad(bot , gid, "", delete=False, verbose=True, debug=False)
-    botapad.parse_csvrows( [headers] + rows, separator='auto', debug=False)
+    botapad.parse_csvrows( headers + rows, separator='auto', debug=False)
     graph = bot.get_igraph(weight_prop="weight")
     
     return graph
@@ -178,22 +192,22 @@ def graph_to_calc(graph):
     nodetypes = [ e['name'] for e in graph['nodetypes']]
 
     headers = []        
+             
     for k in nodetypes:
         if k != "article":
-            headers.append(["@%s: #label" % k])
+            headers.append(["@%s: #label" % k, "shape[%s]" % SHAPES.get(k, "")])
 
     headers = comments + headers + [[],[]]
 
     keys = []
     for i,col in enumerate(COLS):
-        col = col[0]
+        col = col[3]
         key = ""
         if i == 0 :
             key = "@article:"
-        if col == "author_names" : col = "auteurs"
         isindex = col == "id"
         isproj = col in nodetypes
-        key = "%s%s%s%s" % (key, "#" if isindex else "", "%+" if isproj else "", col)
+        key = "%s%s%s%s%s" % (key, "#" if isindex else "", "%+" if isproj else "", "", col)
         keys.append(key)
 
     headers = headers + [keys] 
@@ -204,9 +218,8 @@ def graph_to_calc(graph):
 
     for v in articles:
         row = []
-        for col in COLS:
-            col = col[0]
-            if col == "author_names" : col = "auteurs"
+        for i, col in enumerate(COLS):
+            col = col[3]
             isindex = col == "id"
             isproj = col in nodetypes
             

@@ -89,9 +89,10 @@ def merge(gid, graph, g, **kwargs):
     graph['meta'] = {
             'node_count': graph.vcount(),
             'edge_count': graph.ecount(),
-            'owner': "-",
             'star_count': len( graph['starred'] ),
-            'date' : datetime.datetime.now().strftime("%Y-%m-%d %Hh%M")
+            'owner': None,
+            'date': None,
+            #'date' : datetime.datetime.now().strftime("%Y-%m-%d %Hh%M")
         }
     graph['meta']['pedigree'] = pedigree.compute(graph)
         
@@ -110,12 +111,13 @@ def empty_graph(gid, **kwargs):
     graph = prepare_graph(graph)
     graph['starred'] = []
     graph['queries'] = []
-    graph['meta'] = {
+    graph['meta'] = {  
             'owner': None,
+            'date': None,
+            #'date' : datetime.datetime.now().strftime("%Y-%m-%d %Hh%M")
             'node_count': graph.vcount(),
             'edge_count': graph.ecount(),
             'star_count': len( graph['starred'] ),
-            'date' : datetime.datetime.now().strftime("%Y-%m-%d %Hh%M")
         }
     #graph['meta']['pedigree'] = pedigree.compute(graph)
 
@@ -205,7 +207,7 @@ def search_engine(graphdb):
     search = Optionable("IstexSearch")
     search._func = Search
     search.add_option("q", Text(default=u"clle erss"))
-    search.add_option("field", Text(choices=[ u"*", u"istex", u"auteurs", u"refBibAuteurs" ], default=u"*"))
+    search.add_option("field", Text(choices=[ u"*", u"istex", u"auteurs", u"refBibAuteurs", u"keywords" ], default=u"*"))
     search.add_option("results_count", Numeric( vtype=int, min=1, default=10, help="Istex results count"))
     
     from cello.graphs.transform import VtxAttr
@@ -218,7 +220,7 @@ def search_engine(graphdb):
         
         return g
         
-    global_graph = Optionable("Global")
+    global_graph = Optionable("Graph")
     global_graph._func = _global
     global_graph.add_option("weighting", Text(choices=[ u"1" ,u"weight" , u"keywords", u"auteurs"], default=u"1", help="ponderation"))
     global_graph.add_option("length", Numeric( vtype=int, min=1, default=3))
@@ -321,6 +323,9 @@ def expand_prox_engine(graphdb):
             q = v['properties']['label']
         elif ( v['nodetype'] == ("_%s_refBibAuteurs" % gid) ):
             field = "refBibAuteurs"
+            q = v['properties']['label']
+        elif ( v['nodetype'] == ("_%s_keywords" % gid) ):
+            field = "keywords"
             q = v['properties']['label']
         else: 
             q = v['properties']['label']

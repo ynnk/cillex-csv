@@ -10843,7 +10843,7 @@ fieldset {
 fieldset .segment{
     margin-left: -16px;
     margin-bottom: 20px;}
-  </style><template is="dom-if" if="{{props}}"><template is="dom-if" if="{{show}}"><div class="ui segment"><fieldset><div class="ui tabular menu"><div data-tab="tab-desc" class="active item">Description</div><div data-tab="tab-pedigree" class="item">Pedigree</div><div on-tap="desc" class="right floated item"><i class="close icon"></i></div></div><div data-tab="tab-desc" class="ui active tab"><div class="markdown"><a name="desc">       </a><p>{{props.description}}</p></div></div><div data-tab="tab-pedigree" class="ui tab"><div class="ui list"><template is="dom-repeat" items="[[meta.pedigree]]"><div class="item"><div class="content"><a class="header">{{item.0}} : {{item.2}} </a><div class="description">{{item.1}} </div></div></div></template></div></div></fieldset></div></template><div id="labelsAndButtons" class="ui grid"> <div on-tap="desc" class="ui basic label"> 
+  </style><template is="dom-if" if="{{props}}"><template is="dom-if" if="{{show}}"><div class="ui segment"><fieldset><div class="ui tabular menu"><div data-tab="tab-desc" class="active item">Description</div><div data-tab="tab-schema" class="item">Schema</div><div data-tab="tab-pedigree" class="item">Pedigree</div><div on-tap="desc" class="right floated item"><i class="close icon"></i></div></div><div data-tab="tab-desc" class="ui active tab"><div class="markdown"><a name="desc">       </a><p>{{props.description}}</p></div></div><div data-tab="tab-schema" class="ui tab"><div class="markdown"><a name="schema">       </a><p>{{schema}}</p></div></div><div data-tab="tab-pedigree" class="ui tab"><div class="ui list"><template is="dom-repeat" items="[[meta.pedigree]]"><div class="item"><div class="content"><a class="header">{{item.0}} : {{item.2}} </a><div class="description">{{item.1}} </div></div></div></template></div></div></fieldset></div></template><div id="labelsAndButtons" class="ui grid"> <div on-tap="desc" class="ui basic label"> 
 {{props.name}}</div><div class="ui label"> <i class="circle thin icon"></i>{{meta.node_count}}</div><div class="ui label"> <i class="minus icon"></i>{{meta.edge_count}}</div><template is="dom-if" if="{{meta.star_count}}"><div class="ui label"> <i class="star thin icon"></i>{{meta.star_count}}</div></template><template is="dom-if" if="{{meta.owner}}"><div class="ui label">  <i class="user icon"></i>{{meta.owner}}</div></template><template is="dom-if" if="{{meta.date}}"><div class="ui label">  <i class="calendar icon"></i>{{meta.date}}</div></template><content></content></div></template></template><script>'use strict';
 
 require(['backbone', 'jquery', 'semantic', 'cello', 'pdgconst'], function (Backbone, $, S, Cello, Const) {
@@ -10856,7 +10856,8 @@ require(['backbone', 'jquery', 'semantic', 'cello', 'pdgconst'], function (Backb
       graph: Object,
 
       meta: { type: Object },
-      props: { type: Object }
+      props: { type: Object },
+      schema: { type: Object }
     },
 
     observers: ["setupUI(app, graph)"],
@@ -10869,6 +10870,10 @@ require(['backbone', 'jquery', 'semantic', 'cello', 'pdgconst'], function (Backb
       for (var event in { 'reset': 1, 'merge': 1 }) graph.on(event, function () {
         _this.set("meta", graph.meta.attributes);
         for (var k in graph.meta.attributes) _this.notifyPath("meta." + k, _this.meta[k]);
+
+        var schema = { nodetypes: graph.nodetypes,
+          edgetypes: graph.edgetypes };
+        _this.set("schema", JSON.stringify(schema));
 
         _this.set("props", graph.properties.attributes);
         for (var k in _this.graph.properties.attributes) _this.notifyPath("props." + k, _this.props[k]);

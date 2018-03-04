@@ -86,7 +86,7 @@ def graphsearch(gid=None):
         'background_color' : color,
         'initial_size' : 16,
         'user_font_size' : 2,
-        'user_vtx_size' : 3,
+        'user_vtx_size' : 1,
         'vtx_size' : args.get("vertex_size", 2 ),
         'show_text'  : 0 if args.get("no_text"  , None ) else 1,     # removes vertex text 
         'show_nodes' : 0 if args.get("no_nodes" , None ) else 1,   # removes vertex only 
