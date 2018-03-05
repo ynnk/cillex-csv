@@ -8534,9 +8534,7 @@ require(['backbone', 'cello', 'gviz', 'materials', 'pdgconst'], function (Backbo
             return option.otype.choices != null;
         },
         isSelected: function isSelected(option, item) {
-            var selected = false;
-            if (option.otype.multi) selected = option.value.indexOf(option.parse(item));else selected = option.value == option.parse(item);
-            return selected >= 0;
+            if (option.otype.multi) return option.value.indexOf(option.parse(item)) >= 0;else return option.value == option.parse(item);
         },
 
         isEditable: function isEditable(option) {
