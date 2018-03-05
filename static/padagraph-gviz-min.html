@@ -8478,7 +8478,7 @@ require(['backbone', 'cello', 'gviz', 'materials', 'pdgconst'], function (Backbo
 
   });
 });</script></dom-module><dom-module id="keb-option" assetpath="./"><style>label .name { font-weight:bold; }
-</style><template><template is="dom-if" if="{{ isBoolean(option) }}"><div class="ui checkbox"><input type="checkbox" on-change="bool_changed" checked="{{value::input}}"><label>{{option.name}}</label></div></template><template is="dom-if" if="{{ isEditable(option) }}"><label><span class="name">{{option.name}} :</span><br><span class="help">{{option.otype.help}}</span></label><input value="{{value::input}}"><br></template><template is="dom-if" if="{{ isChoice(option) }}"><label>{{option.name}} {{option.otype.help}}</label><select value="{{value::input}}"><template is="dom-repeat" items="[[option.otype.choices]]"><option selected$="{{isSelected(option, item)}}" value="{{item}}">{{item}} </option></template></select></template></template><script>'use strict';
+</style><template><template is="dom-if" if="{{ isBoolean(option) }}"><div class="ui checkbox"><input type="checkbox" on-change="bool_changed" checked="{{value::input}}"><label>{{option.name}}</label></div></template><template is="dom-if" if="{{ isEditable(option) }}"><label><span class="name">{{option.name}} :</span><br><span class="help">{{option.otype.help}}</span></label><input value="{{value::input}}"><br></template><template is="dom-if" if="{{ isChoice(option) }}"><label>{{option.name}} {{option.otype.help}}</label><select value="{{value}}" multiple$="{{option.otype.multi}}" on-change="observe_input"><template is="dom-repeat" items="[[option.otype.choices]]"><option selected$="{{isSelected(option, item)}}" value="{{item}}">{{item}} </option></template></select></template></template><script>'use strict';
 
 require(['backbone', 'cello', 'gviz', 'materials', 'pdgconst'], function (Backbone, Cello, Gviz, Materials, Const) {
   Polymer({
@@ -8498,8 +8498,24 @@ require(['backbone', 'cello', 'gviz', 'materials', 'pdgconst'], function (Backbo
     },
 
     observe_input: function observe_input(value) {
-      if (this.option.value != value) {
-        console.log("setting ", this.option.name, value);
+
+      console.log("setting ", this.option.name, value);
+
+      if (this.option.otype.choices) {
+        var values = null;
+        var $select = this.$$("select");
+        if ($select) {
+          var options = Array.from($select.selectedOptions);
+          values = options.map(function (e) {
+            return e.value;
+          });
+          if (this.option.otype.multi) {
+            this.option.value = values;
+          } else {
+            this.option.value = values.length ? values[0] : "";
+          }
+        }
+      } else if (this.option.value != value) {
         this.option.value = value;
       }
     },
@@ -8515,7 +8531,9 @@ require(['backbone', 'cello', 'gviz', 'materials', 'pdgconst'], function (Backbo
       return option.otype.choices != null;
     },
     isSelected: function isSelected(option, item) {
-      return option.value == option.parse(item);
+      var selected = false;
+      if (option.otype.multi) selected = option.value.indexOf(option.parse(item));else selected = option.value == option.parse(item);
+      return selected >= 0;
     },
 
     isEditable: function isEditable(option) {

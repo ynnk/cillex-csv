@@ -235,7 +235,11 @@
                     app.listenTo( Backbone,"engine:search", function(params){                            
                         engine.play();
                     });
-                    app.listenTo(engine, 'play:success', app.merge_graph );
+                    var merge = function(response, kwargs, state){
+                        options = { reset: state.graph[0].options.reset }
+                        app.merge_graph(response, options)
+                    };
+                    app.listenTo(engine, 'play:success', merge );
                     
             
                     var engine =  app.engines.labels;

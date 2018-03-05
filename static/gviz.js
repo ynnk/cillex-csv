@@ -1775,7 +1775,7 @@ gviz.ThreeViz = Backbone.View.extend({
 
             members.forEach( function(e,i){
                 var v = gviz.wnidx[e.id];
-                if ( v.screenX < 0 ) return;
+                if ( !v || v.screenX < 0 ) return;
                 
                 var x = v.screenX;
                 var y = v.screenY;

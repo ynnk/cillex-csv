@@ -137,41 +137,52 @@ def query_istex(gid, q, field, count=10, **kwargs):
     return graph
     
 
-def _weights(weighting):
+def _weights(weightings):
     def _w( graph, vertex):
         r = [(vertex, 1)] # loop
         for i in graph.incident(vertex, mode=ALL):
             e = graph.es[i]
             v = e.source if e.target == vertex else e.target
+            w = (v, 1)
 
-            if weighting == "weight":
-                r.append( (v, e['weight']) )
-                
-            elif weighting == "auteurs":
-                if "auteurs" in e['edgetype'].lower() : # auteurs + refBibAuteurs
-                    r.append( (v, 5) )
-                elif "keywords" in e['edgetype'] or "categories" in e['edgetype']:
-                    r.append( (v, 0.1) )
-                else : r.append( (v, 1) )
+            if weightings:
+                if "0" in weightings : 
+                    w = (v, 0)
+                if "1" in weightings : 
+                    w = (v, 1)
+            
+                if "weight" in weightings:
+                    w = (v, e['weight'])
                     
-            elif weighting == "keywords" :
-                if "auteurs" in e['edgetype'].lower() : # auteurs + refBibAuteurs
-                    r.append( (v, 0.1) )
-                elif "keywords" in e['edgetype'] or "categories" in e['edgetype']:
-                    r.append( (v, 5) )
-                else : r.append( (v, 1) )
+                if "auteurs" in weightings:
+                    if "_auteurs" in e['edgetype'].lower() : 
+                        w = (v, 5) 
+                        
+                if "refBibAuteurs" in weightings:
+                    if "_refBibAuteurs" in e['edgetype'].lower() :
+                        w = (v, 5)
+                        
+                if "keywords" in weightings :
+                    if "keywords" in e['edgetype'] :
+                        w =(v, 5)
+                    
+                if "categories" in weightings :
+                    if  "categories" in e['edgetype']:
+                        w = (v, 5)
+
+            r.append( w )
                 
-            elif weighting in ("1", None) : 
-                r.append( (v, 1) )
-        
         return r
     return _w
 
 @Composable
-def extract_articles(gid, graph, cut=100, weighting=None, length=3):
+def extract_articles(gid, graph, cut=100, weighting=None, length=3, **kwargs):
     """
     : weight  :  scenario in ( '' , '' )
     """
+    if weighting is None:
+        weighting = ["1"]
+        
     pz = [ v.index for v in graph.vs if v['nodetype'] == ("_%s_article" % gid) ]
     wneighbors = _weights(weighting)
     
@@ -201,7 +212,8 @@ def search_engine(graphdb):
         graph = merge(gid, graph, g)
         #graphdb.graphs[gid] = graph
 
-        g = graph_articles(gid, graph,  **kwargs)
+        #g = graph_articles(gid, graph,  **kwargs)
+        g = _global(query, weighting=["1"], **kwargs)
         return g
         
     search = Optionable("IstexSearch")
@@ -222,7 +234,8 @@ def search_engine(graphdb):
         
     global_graph = Optionable("Graph")
     global_graph._func = _global
-    global_graph.add_option("weighting", Text(choices=[ u"1" ,u"weight" , u"keywords", u"auteurs"], default=u"1", help="ponderation"))
+    global_graph.add_option("reset", Boolean( default=False , help="reset or add"))
+    global_graph.add_option("weighting", Text(choices=[  u"0", u"1", u"weight" , u"auteurs", u"refBibAuteurs", u"keywords", u"categories" ], multi=True, default=u"1", help="ponderation"))
     global_graph.add_option("length", Numeric( vtype=int, min=1, default=3))
     global_graph.add_option("cut", Numeric( vtype=int, min=2, default=100))
     
@@ -253,9 +266,14 @@ def import_calc_engine(graphdb):
  
 def export_calc_engine(graphdb):
     def _export_calc(query, calc_id=None, **kwargs):
-        query, graph = db_graph(graphdb, query)
+
         if calc_id == None:
-            return None
+            return { 'message' : "No calc_id ",
+                 'gid' : calc_id ,
+                 'url': ""
+                }
+                
+        query, graph = db_graph(graphdb, query)
         url = "http://calc.padagraph.io/_/cillex-%s" % calc_id
         print "_export_calc", query, calc_id, url
 
@@ -272,7 +290,7 @@ def export_calc_engine(graphdb):
         
     export = Optionable("export_calc")
     export._func = _export_calc
-    export.add_option("calc_id", Text(default=None, help="export calc id"))
+    export.add_option("calc_id", Text(default=None, help="identifiant du calc, le calc sera sauvegardé vers l’adresse http://calc.padagraph.io/cillex-{calc-id}"))
     
     engine = Engine("export")
     engine.export.setup(in_name="request", out_name="url")
@@ -408,20 +426,19 @@ def clusters_labels_engine(graphdb):
         clusters = []
         for clust in query['clusters']:
             labels = []
-            if weighting != "No":
-                pz = graph.vs.select(uuid_in=clust)
-                pz = [ v.index for v in pz if  v['nodetype'] == ("_%s_article" % gid ) ]
-                if len(pz):
-                    vs = extract(graph, pz, cut=50, weighting=weighting, length=3)
-                    labels = [ { 'uuid' : graph.vs[i]['uuid'],
-                                 'label' : graph.vs[i]['properties']['label'],
-                                 'score' :  v }  for i,v in vs if graph.vs[i]['nodetype'] != ("_%s_article" % gid )][:count]
+            pz = graph.vs.select(uuid_in=clust)
+            pz = [ v.index for v in pz if  v['nodetype'] == ("_%s_article" % gid ) ]
+            if len(pz):
+                vs = extract(graph, pz, cut=50, weighting=weighting, length=3)
+                labels = [ { 'uuid' : graph.vs[i]['uuid'],
+                             'label' : graph.vs[i]['properties']['label'],
+                             'score' :  v }  for i,v in vs if graph.vs[i]['nodetype'] != ("_%s_article" % gid )][:count]
             clusters.append(labels)
         return clusters
         
     comp = Optionable("labels")
     comp._func = _labels
-    comp.add_option("weighting", Text(choices=[  u"No", u"1" ,u"weight" , u"keywords", u"auteurs"], default=u"1", help="ponderation"))
+    comp.add_option("weighting", Text(choices=[  u"No", u"0", u"1", u"weight" , u"auteurs", u"refBibAuteurs", u"keywords", u"categories" ], multi=True, default=u"1", help="ponderation"))
     comp.add_option("count", Numeric( vtype=int, min=1, default=2))
     
     engine = Engine("labels")
