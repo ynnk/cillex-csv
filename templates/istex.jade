@@ -253,8 +253,8 @@ html
                             engine.play();
                         });
                         var merge = function(response, kwargs, state){
-                            options = { reset: state.graph[0].options.reset }
-                            app.merge_graph(response, options)
+                            options = { reset: state.graph[0].options.reset };
+                            app.merge_graph(response, options);
                         };
                         app.listenTo(engine, 'play:success', merge );
                         

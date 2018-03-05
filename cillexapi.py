@@ -140,7 +140,9 @@ def query_istex(gid, q, field, count=10, **kwargs):
 def _weights(weightings):
     print "weighting" , weightings
     def _w( graph, vertex):
+
         r = [(vertex, 1)] # loop
+        
         for i in graph.incident(vertex, mode=ALL):
             e = graph.es[i]
             v = e.source if e.target == vertex else e.target
@@ -178,23 +180,17 @@ def _weights(weightings):
     return _w
 
 @Composable
-def extract_articles(gid, graph, cut=100, weighting=None, length=3, **kwargs):
+def extract_articles(gid, graph, pz, weighting=None, length=3,  **kwargs):
     """
     : weight  :  scenario in ( '' , '' )
     """
     if weighting is None:
         weighting = ["1"]
         
-    pz = [ v.index for v in graph.vs if v['nodetype'] == ("_%s_article" % gid) ]
     wneighbors = _weights(weighting)
-    
     vs = pure_prox(graph, pz, length, wneighbors)
-    vs = dict(sortcut(vs,cut))
-    return vs
+    return  vs
     
-def graph_articles(gid, graph, **kwargs):
-    vs = extract_articles(gid, graph, **kwargs)
-    return graph.subgraph( vs.keys() )
     
 def search_engine(graphdb):
     """ Prox engine """
@@ -228,15 +224,36 @@ def search_engine(graphdb):
     #search |= VtxAttr(color=[(45, 200, 34), ])
     #search |= VtxAttr(type=1)
 
-    def _global(query, **kwargs):
+    def _global(query, reset=False, all_articles=False, cut=100,  **kwargs):
+
         query, graph = db_graph(graphdb, query)
-        g = graph_articles(query['graph'], graph, **kwargs)
+        gid = query['graph']
+        nodes = query['nodes']
+
+        pz = [ (v.index,1.) for v in graph.vs if v['nodetype'] == ("_%s_article" % gid) ]
+
+        if reset == False:
+            vids = [ v.index for v in graph.vs.select( uuid_in=nodes ) ]
+            vs = extract_articles(gid, graph, dict(pz), **kwargs)
+            vs = sortcut(vs,cut + len(vids) )
+            vs = [ (v,s) for v,s in vs if v not in vids ][:cut]
+            vs = vs + [ (v,1.) for v in vids ]
+        else : 
+            vs = extract_articles(gid, graph, dict(pz), **kwargs)
+            vs = sortcut(vs,cut)
+
+        if all_articles :
+            vs = pz + vs
+            
+        g = graph.subgraph( dict(vs).keys() )
+
         
         return g
         
     global_graph = Optionable("Graph")
     global_graph._func = _global
     global_graph.add_option("reset", Boolean( default=False , help="reset or add"))
+    global_graph.add_option("all_articles", Boolean( default=False , help="includes all articles"))
     global_graph.add_option("weighting", Text(choices=[  u"0", u"1", u"weight" , u"auteurs", u"refBibAuteurs", u"keywords", u"categories" ], multi=True, default=u"1", help="ponderation"))
     global_graph.add_option("length", Numeric( vtype=int, min=1, default=3))
     global_graph.add_option("cut", Numeric( vtype=int, min=2, default=100))
@@ -331,11 +348,11 @@ def expand_prox_engine(graphdb):
         gid = query.get("graph")
         
         field = "*"
-        q = query['nodes']
-        vs = graph.vs.select( uuid_in=q )
+        nodes = query['nodes']
+        vs = graph.vs.select( uuid_in=nodes )
         
         if len(vs) == 0 :
-            raise ValueError('No such node %s' % q)
+            raise ValueError('No such node %s' % nodes)
 
         v = vs[0]
         if ( v['nodetype'] == ("_%s_auteurs" % gid) ):
