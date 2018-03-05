@@ -138,8 +138,8 @@ def query_istex(gid, q, field, count=10, **kwargs):
     
 
 def _weights(weightings):
+    print "weighting" , weightings
     def _w( graph, vertex):
-        #print "weighting" , weightings
         r = [(vertex, 1)] # loop
         for i in graph.incident(vertex, mode=ALL):
             e = graph.es[i]
@@ -160,7 +160,7 @@ def _weights(weightings):
                         w = (v, 5) 
                         
                 if "refBibAuteurs" in weightings:
-                    if "_refBibAuteurs" in e['edgetype'].lower() :
+                    if "_refBibAuteurs" in e['edgetype'] :
                         w = (v, 5)
                         
                 if "keywords" in weightings :
@@ -171,6 +171,7 @@ def _weights(weightings):
                     if  "categories" in e['edgetype']:
                         w = (v, 5)
 
+                #print e['edgetype'], w
             r.append( w )
                 
         return r
