@@ -139,6 +139,7 @@ def query_istex(gid, q, field, count=10, **kwargs):
 
 def _weights(weightings):
     def _w( graph, vertex):
+        #print "weighting" , weightings
         r = [(vertex, 1)] # loop
         for i in graph.incident(vertex, mode=ALL):
             e = graph.es[i]
