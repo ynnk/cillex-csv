@@ -61,21 +61,31 @@ def merge(gid, graph, g, **kwargs):
     for k in g['nodetypes']:
         if k['name'] not in nodetypes:
             graph['nodetypes'].append(k)
-                            
-    edgetypes = [ e['name'] for e in graph['edgetypes'] ]
-    for k in g['edgetypes']:
-        if k['name'] not in edgetypes:
-            graph['edgetypes'].append(k)
 
+    nodetypes = { e['uuid']: e  for e in graph['nodetypes'] }
     for v in g.vs:
         _vid = vid(gid,v)
         if _vid not in idx:
                 uuid = "%s" % graph.vcount()
                 attrs = v.attributes()
                 attrs['uuid'] = uuid
+
+                nodetype = nodetypes[attrs['nodetype']]
+                properties = nodetype['properties']
+                for k in properties:
+                    if k not in attrs['properties']:
+                        attrs['properties'][k] = properties[k]['default']
+                
                 graph.add_vertex( **attrs )
                 idx[ _vid ] = graph.vs[graph.vcount()-1]
                 
+                            
+    edgetypes = [ e['name'] for e in graph['edgetypes'] ]
+    for k in g['edgetypes']:
+        if k['name'] not in edgetypes:
+            graph['edgetypes'].append(k)
+
+    edgetypes = { e['uuid']: e  for e in graph['edgetypes'] }
     for e in g.es:
         v1, v2 = (vid(gid, g.vs[e.source] ), vid(gid, g.vs[e.target]) )
         #if v1 in idx 
@@ -83,7 +93,15 @@ def merge(gid, graph, g, **kwargs):
         eid = graph.get_eid( v1, v2 , directed=True, error=False )
         if eid == -1:
             e['uuid'] = graph.ecount()
-            graph.add_edge( v1, v2, **e.attributes() )
+            attrs = e.attributes()
+            edgetype = edgetypes[attrs['edgetype']]
+            properties = edgetype['properties']
+            for k in properties:
+                if k not in attrs['properties']:
+                    attrs['properties'][k] = properties[k]['default']
+            print attrs['edgetype'] , attrs['properties']
+            
+            graph.add_edge( v1, v2, **attrs )
 
     graph['queries'].append(g['query'])
     graph['meta'] = {
@@ -189,6 +207,28 @@ def extract_articles(gid, graph, pz, weighting=None, length=3,  **kwargs):
     wneighbors = _weights(weighting)
     vs = pure_prox(graph, pz, length, wneighbors)
     return  vs
+
+@Composable
+def graph_articles(gid, graph, reset=True, all_articles=True, cut=200, uuids=[], **kwargs):
+
+    pz = [ (v.index,1.) for v in graph.vs if v['nodetype'] == ("_%s_article" % gid) ]
+
+    if reset == False:
+        vids = [ v.index for v in graph.vs.select( uuid_in=uuids ) ]
+        vs = extract_articles(gid, graph, dict(pz), **kwargs)
+        vs = sortcut(vs,cut + len(vids) )
+        vs = [ (v,s) for v,s in vs if v not in vids ][:cut]
+        vs = vs + [ (v,1.) for v in vids ]
+    else : 
+        vs = extract_articles(gid, graph, dict(pz), **kwargs)
+        vs = sortcut(vs,cut)
+
+    if all_articles :
+        vs = pz + vs
+        
+    g = graph.subgraph( dict(vs).keys() )
+
+    return g
     
     
 def search_engine(graphdb):
@@ -228,26 +268,11 @@ def search_engine(graphdb):
         query, graph = db_graph(graphdb, query)
         gid = query['graph']
         nodes = query['nodes']
-
-        pz = [ (v.index,1.) for v in graph.vs if v['nodetype'] == ("_%s_article" % gid) ]
-
-        if reset == False:
-            vids = [ v.index for v in graph.vs.select( uuid_in=nodes ) ]
-            vs = extract_articles(gid, graph, dict(pz), **kwargs)
-            vs = sortcut(vs,cut + len(vids) )
-            vs = [ (v,s) for v,s in vs if v not in vids ][:cut]
-            vs = vs + [ (v,1.) for v in vids ]
-        else : 
-            vs = extract_articles(gid, graph, dict(pz), **kwargs)
-            vs = sortcut(vs,cut)
-
-        if all_articles :
-            vs = pz + vs
-            
-        g = graph.subgraph( dict(vs).keys() )
+        g = graph_articles(gid, graph, reset=reset, all_articles=all_articles, cut=200, uuids=nodes )
+        return g
+        
 
         
-        return g
         
     global_graph = Optionable("Graph")
     global_graph._func = _global
