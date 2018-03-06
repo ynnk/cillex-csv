@@ -99,7 +99,6 @@ def merge(gid, graph, g, **kwargs):
             for k in properties:
                 if k not in attrs['properties']:
                     attrs['properties'][k] = properties[k]['default']
-            print attrs['edgetype'] , attrs['properties']
             
             graph.add_edge( v1, v2, **attrs )
 
@@ -163,7 +162,8 @@ def _weights(weightings):
         for i in graph.incident(vertex, mode=ALL):
             e = graph.es[i]
             v = e.source if e.target == vertex else e.target
-            w = (v, 1)
+
+            w = (v, 1) # default
 
             if weightings:
                 if "0" in weightings : 
@@ -190,7 +190,6 @@ def _weights(weightings):
                     if  "categories" in e['edgetype']:
                         w = (v, 5)
 
-                #print e['edgetype'], w
             r.append( w )
                 
         return r
@@ -481,7 +480,7 @@ def clusters_labels_engine(graphdb):
         
     comp = Optionable("labels")
     comp._func = _labels
-    comp.add_option("weighting", Text(choices=[  u"No", u"0", u"1", u"weight" , u"auteurs", u"refBibAuteurs", u"keywords", u"categories" ], multi=True, default=u"1", help="ponderation"))
+    comp.add_option("weighting", Text(choices=[  u"0", u"1", u"weight" , u"auteurs", u"refBibAuteurs", u"keywords", u"categories" ], multi=True, default=u"1", help="ponderation"))
     comp.add_option("count", Numeric( vtype=int, min=1, default=2))
     
     engine = Engine("labels")
