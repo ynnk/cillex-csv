@@ -208,11 +208,11 @@ def extract_articles(gid, graph, pz, weighting=None, length=3,  **kwargs):
     return  vs
 
 @Composable
-def graph_articles(gid, graph, reset=True, all_articles=True, cut=200, uuids=[], **kwargs):
+def graph_articles(gid, graph, all_articles=True, cut=200, uuids=[], **kwargs):
 
     pz = [ (v.index,1.) for v in graph.vs if v['nodetype'] == ("_%s_article" % gid) ]
 
-    if reset == False:
+    if uuids and len(uuids):
         vids = [ v.index for v in graph.vs.select( uuid_in=uuids ) ]
         vs = extract_articles(gid, graph, dict(pz), **kwargs)
         vs = sortcut(vs,cut + len(vids) )
@@ -225,16 +225,13 @@ def graph_articles(gid, graph, reset=True, all_articles=True, cut=200, uuids=[],
     if all_articles :
         vs = pz + vs
         
-    g = graph.subgraph( dict(vs).keys() )
+    return graph.subgraph( dict(vs).keys() )
 
-    return g
-    
     
 def search_engine(graphdb):
-    """ Prox engine """
     # setup
-    engine = Engine("graph")
-    engine.graph.setup(in_name="request", out_name="graph")
+    engine = Engine("search")
+    engine.search.setup(in_name="request", out_name="graph")
 
     ## Search
     def Search(query, results_count=10, **kwargs):
@@ -246,10 +243,9 @@ def search_engine(graphdb):
         
         g = query_istex(gid, q, field, results_count)
         graph = merge(gid, graph, g)
-        #graphdb.graphs[gid] = graph
 
-        #g = graph_articles(gid, graph,  **kwargs)
-        g = _global(query, weighting=["1"], **kwargs)
+        nodes = query['nodes']
+        g = graph_articles(gid, graph, weighting=["1"], all_articles=True, cut=100, uuids=nodes, **kwargs )
         return g
         
     search = Optionable("IstexSearch")
@@ -258,31 +254,34 @@ def search_engine(graphdb):
     search.add_option("field", Text(choices=[ u"*", u"istex", u"auteurs", u"refBibAuteurs", u"keywords" ], default=u"*"))
     search.add_option("results_count", Numeric( vtype=int, min=1, default=10, help="Istex results count"))
     
-    from cello.graphs.transform import VtxAttr
-    #search |= VtxAttr(color=[(45, 200, 34), ])
-    #search |= VtxAttr(type=1)
+    engine.search.set( search )
+    return engine
+ 
+
+def graph_engine(graphdb):
+    # setup
+    engine = Engine("graph")
+    engine.graph.setup(in_name="request", out_name="graph")
 
     def _global(query, reset=False, all_articles=False, cut=100,  **kwargs):
 
-        query, graph = db_graph(graphdb, query)
         gid = query['graph']
-        nodes = query['nodes']
-        g = graph_articles(gid, graph, reset=reset, all_articles=all_articles, cut=200, uuids=nodes, **kwargs )
+        query, graph = db_graph(graphdb, query)
+        nodes = [] if reset else query['nodes']
+        g = graph_articles(gid, graph, all_articles=all_articles, cut=200, uuids=nodes, **kwargs )
         return g
         
-
-        
-        
-    global_graph = Optionable("Graph")
-    global_graph._func = _global
-    global_graph.add_option("reset", Boolean( default=False , help="reset or add"))
-    global_graph.add_option("all_articles", Boolean( default=False , help="includes all articles"))
-    global_graph.add_option("weighting", Text(choices=[  u"0", u"1", u"weight" , u"auteurs", u"refBibAuteurs", u"keywords", u"categories" ], multi=True, default=u"1", help="ponderation"))
-    global_graph.add_option("length", Numeric( vtype=int, min=1, default=3))
-    global_graph.add_option("cut", Numeric( vtype=int, min=2, default=100))
+    comp = Optionable("Graph")
+    comp._func = _global
+    comp.add_option("reset", Boolean( default=False , help="reset or add"))
+    comp.add_option("all_articles", Boolean( default=False , help="includes all articles"))
+    comp.add_option("weighting", Text(choices=[  u"0", u"1", u"weight" , u"auteurs", u"refBibAuteurs", u"keywords", u"categories" ], multi=True, default=u"1", help="ponderation"))
+    comp.add_option("length", Numeric( vtype=int, min=1, default=3))
+    comp.add_option("cut", Numeric( vtype=int, min=2, default=100))
     
-    engine.graph.set( search, global_graph )
+    engine.graph.set( comp )
     return engine
+
  
 def import_calc_engine(graphdb):
     def _import_calc(query, calc_id=None, **kwargs):
@@ -418,13 +417,21 @@ def explore_api(engines,graphdb ):
     view.add_output("graph", export_graph, id_attribute='uuid'  )
     api.register_view(view, url_prefix="import")    
 
-    # prox search returns graph only
+    # istex search
     view = EngineView(search_engine(graphdb))
     view.set_input_type(ComplexQuery())
     view.add_output("request", ComplexQuery())
     view.add_output("graph", export_graph, id_attribute='uuid')
 
     api.register_view(view, url_prefix="search")
+
+    # graph exploration
+    view = EngineView(graph_engine(graphdb))
+    view.set_input_type(ComplexQuery())
+    view.add_output("request", ComplexQuery())
+    view.add_output("graph", export_graph, id_attribute='uuid')
+
+    api.register_view(view, url_prefix="graph")
 
     # prox expand returns [(node,score), ...]
     view = EngineView(expand_prox_engine(graphdb))

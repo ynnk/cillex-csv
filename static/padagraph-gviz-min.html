@@ -8357,7 +8357,13 @@ require(['backbone', 'underscore'], function (Backbone, _) {
   text-align:left !important;
 }
 
-</style><div class="ui icon input"><input id="search" name="search" type="text" autocomplete="off" value="{{value::input}}" placeholder="{{placeholder}}" on-keyup="keyHandler"><i class="search icon"></i></div><div class="ui fluid popup bottom left transition"><div class="ui left aligned column"><div class="ui scrollable comments"><template is="dom-repeat" items="[[completions]]"><padagraph-node-completion-card option="notext" actions="{{actions}}" model="{{item}}" on-completion-close="handleClose" class="comment"></padagraph-node-completion-card><div class="ui divider"></div></template></div></div></div></template><script>'use strict';
+span.nodetype{
+  font-size: 16px !important;
+  margin-left: 24px !important;
+  color: rgba(0,0,0,.4);
+  font-size:24px;
+}
+</style><div class="ui icon input"><input id="search" name="search" type="text" autocomplete="off" value="{{value::input}}" placeholder="{{placeholder}}" on-keyup="keyHandler"><i class="search icon"></i></div><div class="ui fluid popup bottom left transition"><div class="ui left aligned column"><div class="ui scrollable comments"><template is="dom-repeat" items="[[completions]]"><template is="dom-if" if="{{item.model}}"><div style="display:inline;" class="card"><padagraph-vertex-card-xs model="{{item.model}}" actions="select"></padagraph-vertex-card-xs><span class="nodetype">{{item.model.nodetype.label}}</span></div></template><template is="dom-if" if="{{!item.model}}"><padagraph-node-completion-card option="notext" actions="{{actions}}" model="{{item}}" on-completion-close="handleClose" class="comment"></padagraph-node-completion-card></template><div class="ui divider"></div></template></div></div></div></template><script>'use strict';
 
 require(['jquery', 'backbone', 'semantic'], function ($, Backbone) {
   Polymer({
@@ -8424,11 +8430,14 @@ require(['jquery', 'backbone', 'semantic'], function ($, Backbone) {
       if (e.keyCode == 13) {
 
         // add first node to the view
-        if (this.completions.length) {
-          var model = this.completions[0];
-          Backbone.trigger('engine:additive_nodes', [model.uuid]);
-          this.handleClose();
-        }
+        //if (this.completions.length){
+        //var model = this.completions[0];
+        //Backbone.trigger('engine:additive_nodes', [model.uuid]);
+        //this.handleClose();
+        //}
+        //else {
+        //}
+        this.fire("complete:valid", { complete: null, value: this.value });
       }
       //else
       //    this.complete();
@@ -8450,7 +8459,14 @@ require(['jquery', 'backbone', 'semantic'], function ($, Backbone) {
         contentType: "application/json; charset=utf-8",
         dataType: "json",
         success: function success(data) {
-          self.completions = data.complete;
+
+          var complete = data.complete;
+          complete.forEach(function (e, i) {
+            var m = self.graph.vs.get(e.uuid);
+            e.model = m ? m : null;
+          });
+
+          self.completions = complete;
           self.show();
         },
         error: function error() {
@@ -8493,8 +8509,15 @@ require(['backbone', 'cello', 'gviz', 'materials', 'pdgconst'], function (Backbo
         observers: ["observe(comp, option)", "observe_input(value)"],
 
         observe: function observe(comp, option) {
+            var _this = this;
+
             console.log(comp, option, this.value);
             if (this.value != option.value) this.value = option.value;
+
+            this.option.on('change', function (option) {
+                _this.value = option.value;
+                //this.notifyPath('option.value')
+            });
         },
 
         observe_input: function observe_input(value) {

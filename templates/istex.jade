@@ -216,8 +216,10 @@ html
                 div#labels
                   padagraph-labels-control
 
+          padagraph-node-search(actions="add,explore")
+          
             script.
-            
+
                 var _window_resized = function(){
                     var e = document.getElementById('gviz');
                     e.style.height = ( window.innerHeight - 32 )+ "px";
@@ -236,6 +238,7 @@ html
                         var app_engines = {
                             // commons
                             'search':app.engines.search,
+                            'graph':app.engines.graph,
                             'expand':app.engines.expand_prox,
                             //'layout':app.engines.layout,
                             //'clustering':app.engines.clustering,
@@ -252,6 +255,15 @@ html
                         app.listenTo( Backbone,"engine:search", function(params){                            
                             engine.play();
                         });
+                        var merge = function(response, kwargs, state){
+                            options = { reset: state.search[0].options.reset };
+                            app.merge_graph(response, options);
+                        };
+                        app.listenTo(engine, 'play:success', merge );
+                        
+                        var engine =  app.engines.graph;
+                        var additiveNodeQuery = new app.Models.AdditiveNodesQuery({graph: app.models.graph })
+                        engine.register_input("request", additiveNodeQuery);
                         var merge = function(response, kwargs, state){
                             options = { reset: state.graph[0].options.reset };
                             app.merge_graph(response, options);
@@ -299,8 +311,16 @@ html
                         $("#keb .close i.close.icon").click( ()=>{ $("#keb").sidebar('hide') } )
                         $("#keb_settings").click( ()=>{ $("#keb").sidebar('show') } )
 
+                        // "complete:valid", { complete:null, value:this.value}
+
+                        document.querySelector('padagraph-node-search').addEventListener('complete:valid', function (e) {
+                          var comp = app.engines.search.blocks.at(0).get_component('IstexSearch')
+                          comp.set_option("q", e.detail.value )
+                          comp.set_option("field", "*" )
+                          app.engines.search.play()
+                        })
+
                         _window_resized();
                     })
 
-          padagraph-node-search(actions="add,explore")
           
