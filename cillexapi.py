@@ -267,7 +267,7 @@ def search_engine(graphdb):
         query, graph = db_graph(graphdb, query)
         gid = query['graph']
         nodes = query['nodes']
-        g = graph_articles(gid, graph, reset=reset, all_articles=all_articles, cut=200, uuids=nodes )
+        g = graph_articles(gid, graph, reset=reset, all_articles=all_articles, cut=200, uuids=nodes, **kwargs )
         return g
         
 
