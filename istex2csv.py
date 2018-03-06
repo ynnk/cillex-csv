@@ -25,14 +25,25 @@ def _document(article, k) :
     
 _label = lambda e,k : e.get('title')
 _abstract = lambda e,k : e.get('abstract')
-_keywords = lambda e, k : ";".join(e['keywords']['teeft']) if 'keywords' in e else ""
+
+def _keywords(e,k):
+    kw = e['keywords']['teeft'] if 'keywords' in e else []
+    kw = [ v for v in kw if len(v)> 2 ]
+    return ";".join(kw) 
 
 def _list(e, k) :
     return  ";".join(e.get(k, []))
 
+def _auteur(name):
+    """ clean auteur name"""
+    name = name.lower().strip()
+    name = [  v[0].upper() + ("." if len(v) == 1 else v[1:])  for v in name.split() ]
+    return " ".join(name)
+
 def _author_names( e, k ):
-    s =  ";".join( [ v['name'] for v in  e['author'] ])
-    return clean(s)
+    auteurs =   [ _auteur(v['name']) for v in  e['author'] ]
+    auteurs = [ v for v in auteurs if len(v)> 2 ]
+    return clean(";".join(auteurs))
     
 def _author_affs(e, k):
     s = ";".join( [ k for k in flatten([ v['affiliations'] for v in  e['author'] ]) if k is not None ] )
@@ -43,18 +54,20 @@ def _refBibAuteurs(article, k) :
     auteurs = []
     for e in article.get('refBibs', [] ):
         for a in e.get('author', [] ):
-            auteurs.append( a['name'] )
+            auteurs.append( _auteur(a['name']) )
+    auteurs = [ v for v in auteurs if len(v)> 2 ]
 
     s =  ";".join( auteurs )
     return clean(s)
-
 
     
 def _categories(article, k) :
     l = set()
     for e in article.get('categories', [] ):
         for a in article['categories'][e]:
-            l.add( a[3:].strip().lower() )
+            cat = a[3:].strip().lower().replace('&', ',').replace(' and ', ',').replace(' et ', ',')
+            for b in cat.split(','):
+                l.add( b.strip() )
     return clean( ";".join( l ) )
 
     

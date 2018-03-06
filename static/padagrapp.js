@@ -1204,6 +1204,7 @@ App.Base = Backbone.View.extend({
         app.listenTo( Backbone, Const.remove_node, function(vertex){
             app.set_auto_compute(false);
             if( vertex ){
+                graph.vs.set_selected([]);
                 graph.vs.remove(vertex);
             }
             app.set_auto_compute(true);
