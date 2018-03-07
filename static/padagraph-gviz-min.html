@@ -8515,8 +8515,7 @@ require(['backbone', 'cello', 'gviz', 'materials', 'pdgconst'], function (Backbo
             if (this.value != option.value) this.value = option.value;
 
             this.option.on('change', function (option) {
-                _this.value = option.value;
-                //this.notifyPath('option.value')
+                if (!_this.option.otype.multi) if (_this.value != option.value) _this.value = option.value;
             });
         },
 
@@ -8536,7 +8535,7 @@ require(['backbone', 'cello', 'gviz', 'materials', 'pdgconst'], function (Backbo
                         return e.value;
                     });
                     if (this.option.otype.multi) {
-                        this.option.value = values;
+                        this.option.set('value', values);
                     } else {
                         this.option.value = values.length ? values[0] : "";
                     }
