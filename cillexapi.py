@@ -268,7 +268,7 @@ def graph_engine(graphdb):
         gid = query['graph']
         query, graph = db_graph(graphdb, query)
         nodes = [] if reset else query['nodes']
-        g = graph_articles(gid, graph, all_articles=all_articles, cut=200, uuids=nodes, **kwargs )
+        g = graph_articles(gid, graph, all_articles=all_articles, cut=cut, uuids=nodes, **kwargs )
         return g
         
     comp = Optionable("Graph")
@@ -283,7 +283,7 @@ def graph_engine(graphdb):
         gid = query['graph']
         graph = empty_graph(gid, **kwargs)
         graphdb.graphs[gid] = graph
-        g = graph_articles(gid, graph, all_articles=True, cut=0, uuids=[], **kwargs )
+        g = graph_articles(gid, graph, all_articles=True, uuids=[], **kwargs )
         return g
 
     reset = Optionable('ResetGraph')
