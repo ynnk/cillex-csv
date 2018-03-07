@@ -1139,7 +1139,7 @@ Cello.Doc = Backbone.Model.extend({
                 var block = _this.get_block(block_name);
                 block.set_state(block_state);
             });
-        },
+        },  
 
         /* return a str version of the current engine config
         this str can be part of an url
@@ -1201,11 +1201,13 @@ Cello.Doc = Backbone.Model.extend({
                     } else {
                         console.log("play:success", response, kwargs, state);
                         _this.trigger("play:success", response, kwargs, state);
+                        _this.trigger("play:complete", response, kwargs, state);
                     }
                 },
                 error: function(xhr, textStatus, errorThrown){
-                    // get an HTTP error anwser (get a 5**)
+                    // get an HTTP error answer (get a 5**)
                     _this.trigger("play:error", {}, xhr);
+                    _this.trigger("play:complete", {}, xhr);
                 },
             });
         },

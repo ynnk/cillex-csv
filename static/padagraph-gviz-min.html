@@ -8577,7 +8577,7 @@ require(['backbone', 'cello', 'gviz', 'materials', 'pdgconst'], function (Backbo
 .optionable.item {
     cursor:pointer;
     padding: 5px;
-    margin-top: 12px;
+    margin-bottom: 12px;
     background: #FAFAFA;
 }
 .optionable.selected.item {
@@ -8590,7 +8590,11 @@ require(['backbone', 'cello', 'gviz', 'materials', 'pdgconst'], function (Backbo
     margin-left: 0px;
     background: none;
 }
-  </style><template><div class$="{{optionable_css(comp.selected)}}" on-tap="select_component" class="optionable item"><template is="dom-if" if="{{ !comp.selected }}"><a> <i class="caret right icon"></i>{{comp.name}}</a></template><template is="dom-if" if="{{ comp.selected }}"><a class="selected"><i class="checkmark icon"></i>{{comp.name}}</a><a on-tap="play" class="ui right floated button"><i class="video play icon"></i></a><template is="dom-if" if="{{comp.options.models.length}}"><div class="options_form_menu"><div class="ui small form"><fieldset><template is="dom-repeat" items="[[comp.options.models]]" as="opt"><template is="dom-if" if="{{ comp.selected }}"><div class="inline field"><keb-option comp="{{comp}}" option="{{opt}}"></keb-option></div></template><template is="dom-if" if="{{ !comp.selected }}"><label>{{ opt.name }} : </label><span>{{opt.value}}</span><br></template></template></fieldset></div></div></template></template></div></template><script>'use strict';
+  </style><template><div>{{comp.description}}</div><div class$="{{optionable_css(comp.selected)}}" on-tap="select_component" class="optionable item"><template is="dom-if" if="{{ !comp.selected }}"><a> <i class="caret right icon"></i>{{comp.name}}</a></template><template is="dom-if" if="{{ comp.selected }}"><a class="selected"><i class="checkmark icon"></i>{{comp.name}}</a><a on-tap="play" class="ui right floated button"><i class="video play icon"></i></a></template><template is="dom-if" if="{{comp.options.models.length}}"><div class="options_form_menu"><div class="ui small form"><fieldset><template is="dom-repeat" items="[[comp.options.models]]" as="opt"><div class="inline field"><keb-option comp="{{comp}}" option="{{opt}}"></keb-option></div></template><!--template(is="dom-if", if="{{ comp.selected }}"  )//template(is="dom-if", if="{{ !comp.selected }}" )
+  //label {{ opt.name }} : 
+  //span {{opt.value}}
+  //br/
+--></fieldset></div></div></template></div></template><script>'use strict';
 
 require(['backbone', 'cello', 'gviz', 'materials', 'pdgconst'], function (Backbone, Cello, Gviz, Materials, Const) {
   Polymer({
@@ -8648,7 +8652,7 @@ a.selected {
 }
 
 
-</style><template><div class="ui segment"> <template is="dom-repeat" items="[[engines]]" as="engine"><a name="{{engine.name}}"></a><h2 class="header"><a>{{engine.name}}</a></h2><div class="menu"></div><template is="dom-if" if="{{ engine.blocks.models.length }}"><template is="dom-repeat" items="[[engine.blocks.models]]" as="block"><div class="block item"><!--a {{block.name}}--><div class="menu"> </div><template is="dom-repeat" items="[[block.components.models]]" as="optionable"><keb-optionable engine="[[engine]]" block="[[block]]" comp="[[optionable]]"></keb-optionable></template></div></template></template></template></div></template><script>'use strict';
+</style><template><div class="ui segment"> <template is="dom-repeat" items="[[engines]]" as="engine"><a name="{{engine.name}}"></a><h2 class="ui sub header"><a>{{engine.name}}</a></h2><p>{{engine.description}} </p><div class="menu"></div><template is="dom-if" if="{{ engine.blocks.models.length }}"><template is="dom-repeat" items="[[engine.blocks.models]]" as="block"><div class="block item"><!--a {{block.name}}--><div class="menu"> </div><template is="dom-repeat" items="[[block.components.models]]" as="optionable"><keb-optionable engine="[[engine]]" block="[[block]]" comp="[[optionable]]"></keb-optionable></template></div></template></template></template></div></template><script>'use strict';
 
 require(['backbone', 'cello', 'gviz', 'materials', 'pdgconst'], function (Backbone, Cello, Gviz, Materials, Const) {
   Polymer({

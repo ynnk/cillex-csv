@@ -116,9 +116,9 @@ def merge(gid, graph, g, **kwargs):
     return graph
     
 @Composable
-def empty_graph(gid, **kwargs):
+def empty_graph(gid, headers=None, **kwargs):
 
-    headers = istex.get_schema()
+    headers = headers if headers else istex.get_schema()
     
     bot = BotaIgraph(directed=True)
     botapad = Botapad(bot , gid, "", delete=False, verbose=True, debug=False)
@@ -278,8 +278,19 @@ def graph_engine(graphdb):
     comp.add_option("weighting", Text(choices=[  u"0", u"1", u"weight" , u"auteurs", u"refBibAuteurs", u"keywords", u"categories" ], multi=True, default=u"1", help="ponderation"))
     comp.add_option("length", Numeric( vtype=int, min=1, default=3))
     comp.add_option("cut", Numeric( vtype=int, min=2, default=100))
+
+    def _reset_global(query, **kwargs):
+        gid = query['graph']
+        graph = empty_graph(gid, **kwargs)
+        graphdb.graphs[gid] = graph
+        g = graph_articles(gid, graph, all_articles=True, cut=0, uuids=[], **kwargs )
+        return g
+
+    reset = Optionable('ResetGraph')
+    reset._func = _reset_global
+    reset.add_option("reset", Boolean( default=True , help="") , hidden=True)
     
-    engine.graph.set( comp )
+    engine.graph.set( comp, reset )
     return engine
 
  
@@ -425,7 +436,7 @@ def explore_api(engines,graphdb ):
 
     api.register_view(view, url_prefix="search")
 
-    # graph exploration
+    # graph exploration, reset global
     view = EngineView(graph_engine(graphdb))
     view.set_input_type(ComplexQuery())
     view.add_output("request", ComplexQuery())

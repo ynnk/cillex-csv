@@ -133,22 +133,24 @@ COLS = [
 """
 
 
-"""
+_COLORED = u"""
+_ article_categories, color[#CCC],	width[1], line[dashed]
+_ article_refBibAuteurs, color[#666], width[1], line[plain]
+_ article_auteurs, color[#555], width[3], line[plain]
+_ article_keywords,	color[#EEE], width[1], line[plain]
 
-_ article_categories, color[#CCC]	width[1]	line[dashed]
-_ article_refBibAuteurs, color[#666]    width[1]	line[plain]
-_ article_auteurs,	color[#555]	width[3]	line[plain]
-_ article_keywords,	color[#EEE]	width[1]	line[plain]
-
-@keywords: #label	shape[triangle-top]	color[#EEE]	
-@refBibAuteurs: #label	shape[diamond]	
-@auteurs: #label	shape[circle]	size[1.3]	
-@categories: #label	shape[triangle-bottom]
-
+@keywords: #label, shape[triangle-top], color[#EEE]	
+@refBibAuteurs: #label, shape[diamond]	
+@auteurs: #label, shape[circle], size[1.3]	
+@categories: #label, shape[triangle-bottom]
 """
 
 def get_schema():           
+    # basic
     SCHEMA = [ [ "@%s: #label" % k , "shape[%s]" %v ]  for k,v in SHAPES.items() if k != "article"]
+    # colored
+    SCHEMA = [ e.split(',') for e in _COLORED.split("\n") if len(e) ]
+
     headers = [ "%s%s" % (e[2],e[3]) for e in COLS ]
     headers[0] = "@article: %s" % headers[0]
     headers = SCHEMA + [headers]
