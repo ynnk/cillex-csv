@@ -10235,11 +10235,11 @@ require(['backbone', 'cello', 'gviz', 'materials', 'pdgconst'], function (Backbo
                 });
             }
 
-            graph.on('reset', function () {
-                _(filters).forEach(function (f) {
-                    f.reset_filters();
-                });
-            });
+            //graph.on('reset', ()=>{
+            //_(filters).forEach((f) => {
+            //f.reset_filters()
+            //});
+            //});
 
             var search = $("padagraph-node-search");
             if (search.length) {
@@ -10392,6 +10392,9 @@ require(['backbone', 'jquery', 'semantic'], function (Backbone, $, S) {
             this._listener.listenTo(this.collection, 'addflag:selected', this.add_selected.bind(this));
             this._listener.listenTo(this.collection, 'rmflag:selected', this.rm_selected.bind(this));
 
+            this._listener.listenTo(this.collection.graph, 'merge', this.update_filtering.bind(this));
+            this._listener.listenTo(this.collection.graph, 'reset', this.reset_filters(this));
+
             this._listener.listenTo(this.collection, 'filter:changed', this.filter_count.bind(this));
             if (this.is_mode_edge) {
                 this._listener.listenTo(this.graph.vs, 'filter:changed', this.filter_count.bind(this));
@@ -10434,20 +10437,37 @@ require(['backbone', 'jquery', 'semantic'], function (Backbone, $, S) {
             return visible;
         },
 
-        set_type_filters: function set_type_filters() {
+        set_type_filters: function set_type_filters(old) {
+            var selected = {};
+
+            if (old && old.length) {
+                selected = _.chain(old.map(function (e, i) {
+                    var items = e.items.map(function (ee, j) {
+                        return [ee.group + ee.name, ee.selected];
+                    });
+                    return items;
+                })).flatten(true).union(old.map(function (e, i) {
+                    return [e.label, e.selected];
+                })).object().value();
+            }
+
             var types = this.mode == "node" ? this.graph.nodetypes : this.graph.edgetypes;
             var collection = this.mode == "node" ? this.graph.vs : this.graph.es;
 
             var ls = _.map(types.models, function (e) {
+
                 var filter = function filter(m) {
                     return e.get('uuid') == m.type.get('uuid');
                 };
                 var count = collection.filter(filter).length;
-
                 var group = e.label.indexOf('/') > 0 ? e.label.substr(0, e.label.indexOf('/')) : "*";
                 var name = e.label.substr(e.label.indexOf('/') + 1);
 
-                return { group: group, name: name, label: e.label, selected: true, count: count, model: e };
+                return { 'group': group,
+                    'name': name,
+                    'label': e.label,
+                    'selected': old ? group + name in selected ? selected[group + name] : true : true,
+                    'count': count, model: e };
             });
 
             var fs = _.filter(ls, function (e) {
@@ -10461,7 +10481,10 @@ require(['backbone', 'jquery', 'semantic'], function (Backbone, $, S) {
                 var count = _.reduce(v, function (memo, e) {
                     return memo + e.count;
                 }, 0);
-                return { label: k, selected: true, items: v, count: count };
+                return { 'label': k,
+                    'selected': old ? k in selected ? selected[k] : true : true,
+                    'items': v,
+                    'count': count };
             });
             if (this.groups_sort) groups.sort(this.groups_sort);
 
@@ -10537,7 +10560,9 @@ require(['backbone', 'jquery', 'semantic'], function (Backbone, $, S) {
         },
 
         update_filtering: function update_filtering() {
+            this.set_type_filters(this.filter_groups);
             this.apply_filters(this.elements, this.filter_types, this.filter_label, this.filter_label_chk);
+            this.filter_count();
         },
 
         apply_filters: function apply_filters(elements, groups, label, _chk) {

@@ -1350,6 +1350,7 @@ var Graph = Backbone.Model.extend({
     },
     
     reset: function(data, options){
+        
         // create a graph from json data
         Cello.debug("parse graph", data);
 
