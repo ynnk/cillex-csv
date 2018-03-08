@@ -10364,7 +10364,7 @@ require(['backbone', 'jquery', 'semantic'], function (Backbone, $, S) {
         },
 
         setGraphModel: function setGraphModel(app, graph) {
-
+            var _this = this;
             if (!app || !graph) return;
 
             $('.dropdown', this).dropdown();
@@ -10393,7 +10393,10 @@ require(['backbone', 'jquery', 'semantic'], function (Backbone, $, S) {
             this._listener.listenTo(this.collection, 'rmflag:selected', this.rm_selected.bind(this));
 
             this._listener.listenTo(this.collection.graph, 'merge', this.update_filtering.bind(this));
-            this._listener.listenTo(this.collection.graph, 'reset', this.reset_filters(this));
+            this._listener.listenTo(this.collection.graph, 'reset', function () {
+                _this.reset_filters();
+                _this.filter_count();
+            });
 
             this._listener.listenTo(this.collection, 'filter:changed', this.filter_count.bind(this));
             if (this.is_mode_edge) {
@@ -10566,7 +10569,7 @@ require(['backbone', 'jquery', 'semantic'], function (Backbone, $, S) {
         },
 
         apply_filters: function apply_filters(elements, groups, label, _chk) {
-            var _this = this;
+            var _this2 = this;
 
             if (!groups || !groups.length) return;
 
@@ -10575,15 +10578,15 @@ require(['backbone', 'jquery', 'semantic'], function (Backbone, $, S) {
 
             _.each(groups, function (g, i) {
                 _.each(g.items, function (e, j) {
-                    var filter = _this.filtered([{ label: e.label, selected: true }], label);
+                    var filter = _this2.filtered([{ label: e.label, selected: true }], label);
                     e.count = elements.filter(filter).length;
                     //this.notifyPath('filter_types.'+i+'.count' )
-                    _this.notifyPath('filter_groups.' + i + '.items.' + j + '.count');
+                    _this2.notifyPath('filter_groups.' + i + '.items.' + j + '.count');
                 });
                 g.count = _.reduce(g.items, function (memo, e) {
                     return memo + e.count;
                 }, 0);
-                _this.notifyPath('filter_groups.' + i + '.count');
+                _this2.notifyPath('filter_groups.' + i + '.count');
             });
 
             var types = _.flatten(_.map(groups, function (e) {

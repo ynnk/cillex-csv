@@ -711,6 +711,7 @@ Cello.Doc = Backbone.Model.extend({
                 }
                 if(this.otype.vtype === "int"){
                     val = parseInt(val);
+                    if ( _.isNaN(val) ) val = "";
                 }
             }
             return val;
