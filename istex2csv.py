@@ -65,7 +65,8 @@ def _categories(article, k) :
     l = set()
     for e in article.get('categories', [] ):
         for a in article['categories'][e]:
-            cat = a[3:].strip().lower().replace('&', ',').replace(' and ', ',').replace(' et ', ',')
+            cat = a[3:] if "-" in a[0:4] else a
+            cat = cat.strip().lower().replace('&', ',').replace(' and ', ',').replace(' et ', ',')
             for b in cat.split(','):
                 l.add( b.strip() )
     return clean( ";".join( l ) )
@@ -176,12 +177,13 @@ def to_istex_url(q, field, size=10):
     return url
 
 
-def request_api(url):
+def request_api(url, headers=None):
+    if not headers :
+        headers = get_schema()
+        
     if url :
         print "requesting %s" % url
         data = requests.get(url).json()
-        
-        headers = get_schema()
         rows = [ [  e[1](hit, e[0]) for e in COLS ] for hit in data['hits'] ]
         return headers, rows
 
@@ -189,8 +191,9 @@ def request_api(url):
         return [], []
 
 
-def request_api_to_graph(gid, url):
-    headers, rows = request_api(url)
+def request_api_to_graph(gid, url, graph=None):
+    headers = None if graph is None else graph_to_calc_headers(graph)
+    headers, rows = request_api(url, )
     #print "HEADERS \n", headers
     #print "ROWS \n", rows
     bot = BotaIgraph(directed=True)
@@ -213,22 +216,20 @@ def to_csv(headers, rows):
     return out.getvalue()
 
 
-def graph_to_calc(graph):
-    
+def graph_to_calc_headers(graph):
+
+    headers = []        
     comments = [
             [ "! %s  V:%s E:%s" % ( graph['properties']['name'], graph.vcount(), graph.ecount())  ],
             [ ], ] + [  ["! %s" % json.dumps(graph['queries'])  ] ]
             
     nodetypes = [ e['name'] for e in graph['nodetypes']]
-
-    headers = []        
              
     for k in nodetypes:
         if k != "article":
             headers.append(["@%s: #label" % k, "shape[%s]" % SHAPES.get(k, "")])
 
     headers = comments + headers + [[],[]]
-
     keys = []
     for i,col in enumerate(COLS):
         col = col[3]
@@ -241,7 +242,14 @@ def graph_to_calc(graph):
         keys.append(key)
 
     headers = headers + [keys] 
+    return headers
+    
+def graph_to_calc(graph):
+    
+    headers = graph_to_calc_headers(graph)
     rows = []
+
+    nodetypes = [ e['name'] for e in graph['nodetypes']]
     nodetypes_idx = { e['uuid']:e for e in graph['nodetypes'] }
 
     articles = [ v for v in graph.vs if nodetypes_idx[v['nodetype']]['name'] == "article" ]

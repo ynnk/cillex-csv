@@ -142,16 +142,16 @@ def empty_graph(gid, headers=None, **kwargs):
 
   
 @Composable
-def query_istex(gid, q, field, count=10, **kwargs):
+def query_istex(gid, q, field, count=10, graph=None,**kwargs):
     url = istex.to_istex_url(q, field, count)
-    graph = istex.request_api_to_graph(gid, url)
-    graph = prepare_graph(graph)
+    g = istex.request_api_to_graph(gid, url, graph)
+    g = prepare_graph(g)
     
-    graph['meta']['date'] = datetime.datetime.now().strftime("%Y-%m-%d %Hh%M")
-    graph['meta']['owner'] = None
-    graph['query'] = { 'q': q, 'field':field , 'url':url}
+    g['meta']['date'] = datetime.datetime.now().strftime("%Y-%m-%d %Hh%M")
+    g['meta']['owner'] = None
+    g['query'] = { 'q': q, 'field':field , 'url':url}
     
-    return graph
+    return g
     
 
 def _weights(weightings):
@@ -489,10 +489,11 @@ def clusters_labels_engine(graphdb):
             pz = graph.vs.select(uuid_in=clust)
             pz = [ v.index for v in pz if  v['nodetype'] == ("_%s_article" % gid ) ]
             if len(pz):
-                vs = extract(graph, pz, cut=50, weighting=weighting, length=3)
+                vs = extract(graph, pz, cut=300, weighting=weighting, length=3)
                 labels = [ { 'uuid' : graph.vs[i]['uuid'],
                              'label' : graph.vs[i]['properties']['label'],
                              'score' :  v }  for i,v in vs if graph.vs[i]['nodetype'] != ("_%s_article" % gid )][:count]
+            print [ graph.vs[e]['properties']['label'] for e in pz], [ e['label'] for e in labels ]
             clusters.append(labels)
         return clusters
         
