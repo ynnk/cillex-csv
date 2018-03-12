@@ -493,7 +493,6 @@ def clusters_labels_engine(graphdb):
                 labels = [ { 'uuid' : graph.vs[i]['uuid'],
                              'label' : graph.vs[i]['properties']['label'],
                              'score' :  v }  for i,v in vs if graph.vs[i]['nodetype'] != ("_%s_article" % gid )][:count]
-            print [ graph.vs[e]['properties']['label'] for e in pz], [ e['label'] for e in labels ]
             clusters.append(labels)
         return clusters
         
