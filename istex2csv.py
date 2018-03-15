@@ -95,6 +95,7 @@ SHAPES = {
 
         
 COLS = [
+    #( api name, func, csv syntax, csv name )
     ('genre', _list , "", "genre"),
     ('title', _key  , "", "title"),
     ('corpusName', _key , "",  "corpusName" ),
@@ -120,7 +121,6 @@ COLS = [
     ('namedEntities', ),
     ('annexes', ),
     ('metadata', ),
-    ('fulltext', ),
     ('serie', ),
     ('host', ),
     ('enrichments', ),
@@ -224,7 +224,6 @@ def graph_to_calc_headers(graph):
             [ ], ] + [  ["! %s" % json.dumps(graph['queries'])  ] ]
             
     nodetypes = [ e['name'] for e in graph['nodetypes']]
-             
     for k in nodetypes:
         if k != "article":
             headers.append(["@%s: #label" % k, "shape[%s]" % SHAPES.get(k, "")])
