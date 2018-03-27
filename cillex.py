@@ -31,8 +31,6 @@ login_manager.init_app(app)
 from flask_cors import CORS
 CORS(app)
 
-from flaskext.markdown import Markdown
-Markdown(app)
 
 
 from pdgapi.explor import prepare_graph, export_graph, layout_api, clustering_api
@@ -57,8 +55,7 @@ from cillexapi import db_graph
 
 @app.route('/', methods=['GET', 'POST'])
 def readme():
-    md = codecs.open('cillex.md', 'r', encoding='utf8').read()
-    return render_template('home.html', readme=md )
+    return render_template('home.html' )
 
 @app.route('/graphsearch', methods=['GET'])
 @app.route('/graphsearch/<string:gid>', methods=['GET'])
