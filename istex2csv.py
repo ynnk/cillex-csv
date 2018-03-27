@@ -98,12 +98,15 @@ COLS = [
     #( api name, func, csv syntax, csv name )
     ('genre', _list , "", "genre"),
     ('title', _key  , "", "title"),
+    ('publicationDate', _key  , "", "publicationDate"),
+    ('ark', _key  , "", "ark"),
     ('corpusName', _key , "",  "corpusName" ),
     ('', _label  , "",  "label"),
     ('', _fulltext, "", "fulltext"),
     ('', _document, "", "document"),
     ('abstract', _abstract , "", "text_abstract"),
     ('id', _key, "#", "id"),
+    ('doi', _key, "", "doi"),
     ('author_names', _author_names ,  "%+", "auteurs"),
     ('score', _key , "", "score"),
     ('keywords', _keywords ,  "%+", "keywords"),
@@ -116,8 +119,6 @@ COLS = [
 
 """
     ('author_affiliations', _author_affs ,  "%+author_affiliations"),
-    ('publicationDate', ),
-    ('ark', ),
     ('namedEntities', ),
     ('annexes', ),
     ('metadata', ),

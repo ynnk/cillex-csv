@@ -3,6 +3,7 @@
 import os
 import sys
 import requests
+import codecs
 import random
 import json
 import datetime
@@ -30,6 +31,9 @@ login_manager.init_app(app)
 from flask_cors import CORS
 CORS(app)
 
+from flaskext.markdown import Markdown
+Markdown(app)
+
 
 from pdgapi.explor import prepare_graph, export_graph, layout_api, clustering_api
 
@@ -52,8 +56,9 @@ STATIC_HOST = ""
 from cillexapi import db_graph
 
 @app.route('/', methods=['GET', 'POST'])
-def home():
-    return render_template('home.html')
+def readme():
+    md = codecs.open('cillex.md', 'r', encoding='utf8').read()
+    return render_template('home.html', readme=md )
 
 @app.route('/graphsearch', methods=['GET'])
 @app.route('/graphsearch/<string:gid>', methods=['GET'])
@@ -126,74 +131,6 @@ from pdgapi import get_engines_routes
 def _engines():
     host = ENGINES_HOST
     return jsonify({'routes': get_engines_routes(app, host)})
-
-
-
-@app.route('/csv', methods=['GET', 'POST'])
-def tocsv():
-    schema = "\n".join([ 
-        "@refBibAuteurs: #label, shape[triangle-top]",
-        "@auteurs: #label, shape[triangle-bottom]",
-        "@keywords: #label, shape[diamond]",
-        "@categories: #label, shape[diamond]",
-        ])
-
-    field = request.form.get('champ', "")
-    calc = request.form.get('calc', CALC_URL)
-    q = request.form.get('q', None)
-
-    if not q :
-        return render_template('tocsv.html',
-            mode="POST",
-            headers=[], rows=[],
-            calc = CALC_URL,
-            graph = "",
-            urls= ""
-            )
-        
-    calc = request.form.get('calc', CALC_URL)
-    gid = calc.split("/")[-1]
-    _calc = calc.split("/")
-    _calc = "/".join(_calc[:-1] + ['_'] + _calc[-1:])
-
-    append = request.form.get('append', False)
-
-    table = False
-    headers, rows = (None, None)
-    mode = "POST" if append else "PUT"
-    graph = "http://localhost:5000/import/igraph.html?nofoot=1&s=%s&gid=%s" % ( calc, gid )
-
-    urls = [istex.to_istex_url( q, field )]
-
-    print " * Requesting istex engines at : \n > %s " % urls
-
-    for url in urls:
-        
-        if not len(url) : continue
-        
-        headers, rows = istex.request_api(url)
-
-        table = headers and len(headers) > 0
-
-        if table:
-            if mode == "PUT":
-                print( "* PUT %s %s " % (_calc, len(rows)) ) 
-                r = requests.put(_calc, data=schema + "\n" + istex.to_csv(headers, rows))
-            if mode == "POST":
-                print( "* POST %s %s " % (_calc, len(rows)) ) 
-                r = requests.post(_calc, data=istex.to_csv([], rows))
-            mode = "POST"
-
-    
-             
-    return render_template('tocsv.html',
-            table=table, mode=mode,
-            headers=headers, rows=rows,
-            calc=calc,
-            graph=graph,
-            urls= " ".join( urls if len(urls) else [] )
-            )
-
 
 from flask_runner import Runner
 def main():

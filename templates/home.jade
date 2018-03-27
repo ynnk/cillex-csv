@@ -12,7 +12,11 @@ html
     style(type='text/css').
 
   body
+    div(style="width:400px; margin:auto")
+        h1 Graphsearch
 
-    iframe( src="http://localhost:5004/csv" style="width:100%;height:300px")
-    
-    iframe( src="http://localhost:5000/import/igraph.html?nofoot=1&s=http://calc.padagraph.io/export-cillex-csv-Y&gid=cillex" style="width:100%;height:800px")
+        a(href="./graphsearch") cillex graphsearch
+        
+        h1 Documentation 
+
+    include cillex.html
