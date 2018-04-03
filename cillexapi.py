@@ -14,18 +14,15 @@ from reliure.web import ReliureAPI, EngineView, ComponentView, RemoteApi
 from reliure.pipeline import Optionable, Composable
 from reliure.engine import Engine
 
-from cello.graphs import pedigree
-from cello.graphs import export_graph, IN, OUT, ALL
+from cello.graphs import IN, OUT, ALL
 from cello.graphs.prox import ProxSubgraph, pure_prox, sortcut
-from cello.graphs.extraction import ProxMarkovExtraction
 
 from cello.layout import export_layout
 from cello.clustering import export_clustering
 
-from pdgapi.explor import ComplexQuery, AdditiveNodes, NodeExpandQuery, prepare_graph, export_graph, layout_api, clustering_api
+from pdgapi.explor import ComplexQuery, AdditiveNodes, NodeExpandQuery, layout_api, clustering_api
 
-from botapi import BotaIgraph
-from botapad import Botapad
+from botapad.utils import *
 
 import istex2csv as istex
 
@@ -36,7 +33,8 @@ def db_graph(graphdb, query, **kwargs):
     try : 
         graph = graphdb.get_graph(gid)
     except Exception as e:
-        graph = empty_graph(gid, **kwargs)
+        headers = istex.get_schema()
+        graph = empty_graph(gid,  headers , **kwargs)
         graphdb.graphs[gid] = graph
 
     return query, graph
@@ -53,116 +51,6 @@ def vid(gid, v):
 def index(gid, graph, **kwargs):
     idx = { vid(gid, v): v for v in graph.vs }
     return idx
-
-def types_stats( items , opt={}):
-    counter = Counter(items)
-    return dict(counter)  
-    print counter
-
-@Composable
-def graph_stats(graph, **kwargs):
-    graph['meta']['stats'] = {}
-
-    stats = types_stats(graph.vs['nodetype'])
-    print stats
-    for e in graph['nodetypes']:
-        e['count'] = stats.get(e['uuid'], 0)
-    graph['meta']['stats']['nodetypes'] = stats
-    
-    stats = types_stats(graph.es['edgetype'])
-    for e in graph['edgetypes']:
-        e['count'] = stats.get(e['uuid'], 0)
-    graph['meta']['stats']['edgetypes'] = stats
-    return graph
-
-@Composable
-def merge(gid, graph, g, **kwargs):
-    """ merge g into graph, returns graph"""
-    idx = index(gid, graph)
-    
-    nodetypes = [ e['name'] for e in graph['nodetypes'] ]
-    for k in g['nodetypes']:
-        if k['name'] not in nodetypes:
-            graph['nodetypes'].append(k)
-
-    nodetypes = { e['uuid']: e  for e in graph['nodetypes'] }
-    for v in g.vs:
-        _vid = vid(gid,v)
-        if _vid not in idx:
-                uuid = "%s" % graph.vcount()
-                attrs = v.attributes()
-                attrs['uuid'] = uuid
-
-                nodetype = nodetypes[attrs['nodetype']]
-                properties = nodetype['properties']
-                for k in properties:
-                    if k not in attrs['properties']:
-                        attrs['properties'][k] = properties[k]['default']
-                
-                graph.add_vertex( **attrs )
-                idx[ _vid ] = graph.vs[graph.vcount()-1]
-                
-                            
-    edgetypes = [ e['name'] for e in graph['edgetypes'] ]
-    for k in g['edgetypes']:
-        if k['name'] not in edgetypes:
-            graph['edgetypes'].append(k)
-
-    edgetypes = { e['uuid']: e  for e in graph['edgetypes'] }
-    for e in g.es:
-        v1, v2 = (vid(gid, g.vs[e.source] ), vid(gid, g.vs[e.target]) )
-        #if v1 in idx 
-        v1, v2 = ( idx[v1], idx[v2] )
-        eid = graph.get_eid( v1, v2 , directed=True, error=False )
-        if eid == -1:
-            e['uuid'] = graph.ecount()
-            attrs = e.attributes()
-            edgetype = edgetypes[attrs['edgetype']]
-            properties = edgetype['properties']
-            for k in properties:
-                if k not in attrs['properties']:
-                    attrs['properties'][k] = properties[k]['default']
-            
-            graph.add_edge( v1, v2, **attrs )
-
-    graph['queries'].append(g['query'])
-    graph['meta'] = {
-            'node_count': graph.vcount(),
-            'edge_count': graph.ecount(),
-            'star_count': len( graph['starred'] ),
-            'owner': None,
-            'date': None,
-            #'date' : datetime.datetime.now().strftime("%Y-%m-%d %Hh%M")
-        }
-    graph['meta']['pedigree'] = pedigree.compute(graph)
-    graph = graph_stats(graph)    
-    return graph
-    
-@Composable
-def empty_graph(gid, headers=None, **kwargs):
-
-    headers = headers if headers else istex.get_schema()
-    
-    bot = BotaIgraph(directed=True)
-    botapad = Botapad(bot , gid, "", delete=False, verbose=True, debug=False)
-    botapad.parse_csvrows( headers, separator='auto', debug=False)
-
-    graph = bot.get_igraph(weight_prop="weight")
-    graph = prepare_graph(graph)
-    graph['starred'] = []
-    graph['queries'] = []
-    graph['meta'] = {  
-            'owner': None,
-            'date': None,
-            #'date' : datetime.datetime.now().strftime("%Y-%m-%d %Hh%M")
-            'node_count': graph.vcount(),
-            'edge_count': graph.ecount(),
-            'star_count': len( graph['starred'] ),
-            'stats' : {}
-        }
-    #graph['meta']['pedigree'] = pedigree.compute(graph)
-
-    return graph
 
   
 @Composable
@@ -266,7 +154,7 @@ def search_engine(graphdb):
         field = kwargs.pop("field", None)
         
         g = query_istex(gid, q, field, results_count)
-        graph = merge(gid, graph, g)
+        graph = merge(gid, graph, g, index=index, vid=vid)
 
         nodes = query['nodes']
         g = graph_articles(gid, graph, weighting=["1"], all_articles=True, cut=100, uuids=nodes, **kwargs )
@@ -305,7 +193,8 @@ def graph_engine(graphdb):
 
     def _reset_global(query, **kwargs):
         gid = query['graph']
-        graph = empty_graph(gid, **kwargs)
+        headers = istex.get_schema()
+        graph = empty_graph(gid, headers, **kwargs)
         graphdb.graphs[gid] = graph
         g = graph_articles(gid, graph, all_articles=True, uuids=[], **kwargs )
         return g

@@ -32,11 +32,12 @@ from flask_cors import CORS
 CORS(app)
 
 
+from pdgapi.explor import layout_api, clustering_api
 
-from pdgapi.explor import prepare_graph, export_graph, layout_api, clustering_api
 
 from botapi import BotaIgraph
 from botapad import Botapad
+from botapad.utils import prepare_graph, export_graph
 
 from pdglib.graphdb_ig import IGraphDB, engines
 from cello.graphs import pedigree
