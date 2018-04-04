@@ -20,4 +20,6 @@ statics :
 
 
 build : jade statics
-    
+
+run : build
+	export APP_DEBUG=true; python cillex.py  --port 5004

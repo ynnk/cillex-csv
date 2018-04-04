@@ -232,51 +232,72 @@
                   app_engines[k].engine = app.engines[k];
               }
       
-              var engine =  app.engines.search;
-              var additiveNodeQuery = new app.Models.AdditiveNodesQuery({graph: app.models.graph })
-              engine.register_input("request", additiveNodeQuery);
-              app.listenTo( Backbone,"engine:search", function(params){                            
-                  engine.play();
-              });
-              var merge = function(response, kwargs, state){
-                  options = { reset: state.search[0].options.reset };
-                  app.merge_graph(response, options);
-              };
-              app.listenTo(engine, 'play:success', merge );
-              
-              var engine =  app.engines.graph;
-              var additiveNodeQuery = new app.Models.AdditiveNodesQuery({graph: app.models.graph })
-              engine.register_input("request", additiveNodeQuery);
-              var merge = function(response, kwargs, state){
-                  options = { reset: state.graph[0].options ? state.graph[0].options.reset : true };
-                  app.merge_graph(response, options);
-              };
-              app.listenTo(engine, 'play:success', merge );
-              
       
-              var engine =  app.engines.labels;
-              var cluster_query = new app.Models.ClustersLabelsQuery({ graph: app.models.graph, clustering : app.models.clustering })
-              engine.register_input("request", cluster_query);
-              app.listenTo( Backbone,"engine:labels", function(params){                            
-                  engine.play();
-              });
-              app.listenTo(engine, 'play:success', app.clusters_labels );
+              (function(){
+                  var engine =  app.engines.search;
+                  var additiveNodeQuery = new app.Models.AdditiveNodesQuery({graph: app.models.graph })
+                  engine.register_input("request", additiveNodeQuery);
+                  app.listenTo( Backbone,"engine:search", function(params){                            
+                      engine.play();
+                  });
+                  var merge = function(response, kwargs, state){
+                      options = { reset: state.search[0].options.reset };
+                      app.merge_graph(response, options);
+                  };
+                  app.listenTo(engine, 'play:success', merge );
+              })();
+                  
+              (function(){
+                  var engine =  app.engines.graph;
+                  var additiveNodeQuery = new app.Models.AdditiveNodesQuery({graph: app.models.graph })
+                  engine.register_input("request", additiveNodeQuery);
+                  var merge = function(response, kwargs, state){
+                      options = { reset: state.graph[0].options ? state.graph[0].options.reset : true };
+                      app.merge_graph(response, options);
+                  };
+                  app.listenTo( Backbone,"engine:explore", function(params){                            
+                      var block = engine.blocks.at(0);
+                      var comp = block.components.at(0);
+                      block.select(comp);
+                      comp.set_option('reset', true);
+      
+                      Backbone.trigger("unselect_nodes");
+                      Backbone.trigger("unselect_edges");
+      
+                      engine.play();
+                  });
+                  app.listenTo(engine, 'play:success', merge );
+              })();
               
-              var engine =  app.engines.export;
-              var additiveNodeQuery = new app.Models.AdditiveNodesQuery({graph: app.models.graph })
-              engine.register_input("request", additiveNodeQuery);
-              app.listenTo( Backbone,"engine:export", function(params){                            
-                  engine.play();
-              });
-              app.listenTo(engine, 'play:success', app.noop() );
+              (function(){
+                  var engine =  app.engines.labels;
+                  var cluster_query = new app.Models.ClustersLabelsQuery({ graph: app.models.graph, clustering : app.models.clustering })
+                  engine.register_input("request", cluster_query);
+                  app.listenTo( Backbone,"engine:labels", function(params){                            
+                      engine.play();
+                  });
+                  app.listenTo(engine, 'play:success', app.clusters_labels );
+              })();
               
-              engine =  app.engines.import;
-              var additiveNodeQuery = new app.Models.AdditiveNodesQuery({graph: app.models.graph })
-              engine.register_input("request", additiveNodeQuery);
-              app.listenTo( Backbone,"engine:import", function(params){                            
-                  engine.play();
-              });
-              app.listenTo(engine, 'play:success', app.explore_reset);
+              (function(){
+                  var engine =  app.engines.export;
+                  var additiveNodeQuery = new app.Models.AdditiveNodesQuery({graph: app.models.graph })
+                  engine.register_input("request", additiveNodeQuery);
+                  app.listenTo( Backbone,"engine:export", function(params){                            
+                      engine.play();
+                  });
+                  app.listenTo(engine, 'play:success', app.noop() );
+              })();
+              
+              (function(){
+                  var engine = app.engines.import;
+                  var additiveNodeQuery = new app.Models.AdditiveNodesQuery({graph: app.models.graph })
+                  engine.register_input("request", additiveNodeQuery);
+                  app.listenTo( Backbone,"engine:import", function(params){                            
+                      engine.play();
+                  });
+                  app.listenTo(engine, 'play:success', app.explore_reset);
+              })();
               
               for (var k in app_engines){
                   var engine = app_engines[k].engine

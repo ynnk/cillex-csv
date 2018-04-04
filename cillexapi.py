@@ -294,11 +294,12 @@ def expand_prox_engine(graphdb):
         gid = query.get("graph")
         
         field = "*"
+        expand = query['expand']
         nodes = query['nodes']
-        vs = graph.vs.select( uuid_in=nodes )
+        vs = graph.vs.select( uuid_in=expand )
         
         if len(vs) == 0 :
-            raise ValueError('No such node %s' % nodes)
+            raise ValueError('No such node %s' % expand)
 
         v = vs[0]
         if ( v['nodetype'] == ("_%s_auteurs" % gid) ):
@@ -314,7 +315,7 @@ def expand_prox_engine(graphdb):
             q = v['properties']['label']
 
         g = query_istex(gid, q, field)
-        graph = merge(gid, graph, g)
+        graph = merge(gid, graph, g, index=index, vid=vid)
 
         pz = [ v.index ]
         vs = extract(graph, pz, **kwargs)

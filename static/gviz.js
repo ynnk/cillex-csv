@@ -2464,7 +2464,7 @@ Gviz.SimpleViz = function(graph, attrs){
     gviz.on( 'vertex:dblclick', function(vertex, event){
       if (vertex && vertex.id && vertex.has_flag && (vertex.has_flag('disabled') == false)) 
         Backbone.trigger('engine:expand_prox',
-                { nodes : [vertex.id] , weights : [1] }
+                { expand : [vertex.id] , weights : [1] }
             );
     });
     
